@@ -31,6 +31,9 @@ build/tflite_export/
 # ---- Freebuff workspace metadata ----
 .freebuff/
 
+# Scratch space for CI log downloads (never a project artifact)
+.ghlogs/
+
 # NOTE: app/src/main/assets/*.tflite is intentionally NOT ignored — the model
 # is a project artifact. Just make sure you commit a real trained model, not the
 # dummy one produced by tools/make_dummy_model.py.

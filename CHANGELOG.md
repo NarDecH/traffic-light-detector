@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+### Added
+
+- **เทสต์ของสคริปต์โมเดล** — `tools/tests/` 32 เคส (ใช้แค่ standard library รันได้โดยไม่ต้อง `pip install`)
+  ครอบคลุมการตัดสินความเข้ากันได้ของโมเดล, การอ่าน quantization ทั้งรูปแบบใหม่/เก่า, CLI และสัญญา output
+  ของโมเดลปลอม (4 เคสหลังต้องมี TensorFlow จึงจะรัน) พร้อม job `model-tools` ใน CI
+- **รายงาน lint เป็น artifact** — อัปโหลด `lint-results-debug.{txt,html,xml}` และพิมพ์สรุปใน log ของ CI
+
+### Changed
+
+- **lint กลายเป็นด่านจริง** — เอา `continue-on-error` ออกจาก `:app:lintDebug` และตั้ง `abortOnError`
+  ใน `app/build.gradle.kts` (เดิม lint error จะถูกกลบแล้ว CI ยังขึ้นเขียว)
+- `inspect_model.py` ตรวจว่าไฟล์โมเดลมีอยู่จริงก่อน import TensorFlow — พิมพ์ชื่อ path ที่ผิดให้เห็น
+  แม้เครื่องยังไม่ได้ติดตั้ง TensorFlow (และ exit code คงที่สำหรับการทดสอบ)
+
 ### Planned
 
 - Instrumented test สำหรับ `TrafficLightAnalyzer` และ `OverlayView`

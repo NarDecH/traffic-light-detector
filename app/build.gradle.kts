@@ -51,6 +51,17 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+
+    lint {
+        // Lint errors fail the build: CI runs :app:lintDebug as a gate.
+        abortOnError = true
+        // Warnings are reviewed case by case instead of blocking the build.
+        warningsAsErrors = false
+        // The text report is printed by CI so findings show up in the log.
+        textReport = true
+        // Only this module is ours to fix; dependency sources are excluded.
+        checkDependencies = false
+    }
 }
 
 kotlin {

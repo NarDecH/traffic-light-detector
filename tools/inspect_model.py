@@ -8,7 +8,7 @@ Use it before dropping a model into `app/src/main/assets/` to check that
     (optionally) a `num_detections` scalar,
   * whether the tensors are quantized.
 
-Exit codes: 0 = compatible, 1 = missing tooling, 2 = incompatible model.
+Exit codes: 0 = compatible, 1 = missing model file or tooling, 2 = incompatible model.
 
 Usage:
     python tools/inspect_model.py path/to/model.tflite
@@ -96,14 +96,16 @@ def main() -> int:
     parser.add_argument("model", type=pathlib.Path)
     args = parser.parse_args()
 
+    # Check the path first: a typo should be reported even when TensorFlow is
+    # not installed, and this keeps the failure deterministic for the tests.
+    if not args.model.is_file():
+        print(f"Model not found: {args.model}")
+        return 1
+
     try:
         import tensorflow as tf
     except ImportError:
         print("TensorFlow is required: pip install tensorflow")
-        return 1
-
-    if not args.model.is_file():
-        print(f"Model not found: {args.model}")
         return 1
 
     interpreter = tf.lite.Interpreter(model_path=str(args.model))

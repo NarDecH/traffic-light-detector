@@ -25,6 +25,24 @@
 และ**ไม่เกี่ยวกับ Android** จึงทดสอบได้เร็วและเสถียร ส่วนโค้ดที่เหลือ (CameraX, Interpreter, Canvas)
 ถูกออกแบบให้บางที่สุดและตรวจด้วยการรันจริง
 
+### 1.1 เทสต์ของสคริปต์ใน `tools/`
+
+สคริปต์จัดการโมเดลก็มี unit test ของตัวเอง (ใช้แค่ standard library ไม่ต้อง `pip install`)
+รันพร้อมกันได้ทั้งชุด:
+
+```bash
+python -m unittest discover -s tools/tests -v      # 32 เคส (ข้าม 4 ถ้าไม่มี TensorFlow)
+```
+
+| ไฟล์ | เคสที่ครอบคลุม | ตรวจอะไรเป็นพิเศษ |
+|------|----------------|--------------------|
+| `tests/test_inspect_model.py` | 22 เคส | การตัดสินว่าโมเดล "ใช้ได้กับแอป" หรือไม่ (NHWC, จำนวน output, ต้องมี tensor `[1, N, 4]`), การอ่าน quantization ทั้งรูปแบบใหม่ (`quantization_parameters`) และเก่า (`quantization` dict/tuple), การ flatten ค่าที่เป็น numpy array, การจัดรูปแบบบรรทัดสรุป และ exit code ของ CLI (ไม่มี argument = 2, ไฟล์หาย = 1) |
+| `tests/test_make_dummy_model.py` | 6 เคส | ค่าเริ่มต้นของ `--output`/`--size`, การ parse flag, `--help` ต้องใช้ได้แม้ยังไม่ติดตั้ง TensorFlow |
+| `tests/test_model_contract.py` | 4 เคส | **ต้องมี TensorFlow** — สร้างโมเดลปลอมจริงแล้วยืนยันว่ามันผ่าน `check_compatibility()` และ output เรียงเป็น boxes/classes/scores/num ตามสัญญา (ข้ามอัตโนมัติเมื่อไม่มี TensorFlow เช่นใน CI) |
+
+CI รันชุดนี้ใน job `Model tooling (python)` แยกจาก job ของ Android เพื่อไม่ให้ช้าไปด้วยกัน
+ถ้าอยากให้เคส 4 ตัวสุดท้ายรันในเครื่องคุณ: `pip install "tensorflow>=2.15"` แล้วรันคำสั่งเดิมอีกครั้ง
+
 ### สิ่งที่ unit test ยังไม่ครอบคลุม
 
 - การโหลดโมเดลจริง + การอ่าน output tensor (ต้องมีไฟล์ `.tflite` และ runtime ของ TFLite)
@@ -92,12 +110,18 @@ adb logcat -s TrafficLightDetector:I MainViewModel:I ToneAlerter:I
 
 ## 5. CI (GitHub Actions)
 
-`.github/workflows/android.yml` รันทุก push/PR:
+`.github/workflows/android.yml` รันทุก push/PR แยกเป็น 2 job
 
-1. JDK 17 + Android SDK
-2. `gradle :app:testDebugUnitTest` — unit test ทั้งหมด
-3. `gradle :app:assembleDebug` — ยืนยันว่าโปรเจกต์ compile ผ่าน (ขั้นนี้คือด่านที่จับ compile error จาก Kotlin/Android APIs)
-4. `gradle :app:lintDebug` — **advisory** (`continue-on-error`) จนกว่าจะ commit lint baseline
-5. อัปโหลด APK (`app-debug`) เป็น artifact ให้ดาวน์โหลดไปลองได้
+**job `build`** (Android, ใช้ JDK 17 + Android SDK)
+
+1. `gradle :app:testDebugUnitTest` — unit test ทั้งหมด
+2. `gradle :app:assembleDebug` — ยืนยันว่าโปรเจกต์ compile ผ่าน (ขั้นนี้คือด่านที่จับ compile error จาก Kotlin/Android APIs)
+3. `gradle :app:lintDebug` — เป็น **ด่านจริง** (`abortOnError`): lint error ทำให้ CI ล้ม ไม่ถูกกลบด้วย `continue-on-error` อีก
+   พร้อมพิมพ์สรุป 40 บรรทัดท้ายและอัปโหลด `lint-results-debug.{txt,html,xml}` เป็น artifact `lint-report`
+4. อัปโหลด APK (`app-debug`) เป็น artifact ให้ดาวน์โหลดไปลองได้
+
+**job `model-tools`** (Python, ไม่ต้องติดตั้ง dependency)
+
+5. `python -m unittest discover -s tools/tests -v` — เทสต์สคริปต์ใน `tools/` (ดูหัวข้อ 1.1)
 
 CI ไม่ได้รัน instrumented test (ต้องใช้อุปกรณ์จริง) และไม่ได้ทดสอบกล้อง

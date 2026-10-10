@@ -16,6 +16,7 @@ git clone https://github.com/NarDecH/traffic-light-detector.git
 cd traffic-light-detector
 ./gradlew :app:testDebugUnitTest     # unit test ต้องผ่านก่อนส่ง PR
 ./gradlew :app:assembleDebug         # ต้อง compile ผ่าน
+python -m unittest discover -s tools/tests -v   # เทสต์สคริปต์โมเดล (ไม่ต้อง pip install)
 ```
 
 ถ้ายังไม่มีโมเดล ให้ `python tools/make_dummy_model.py` เพื่อให้แอปรันได้ (อย่า commit ไฟล์นั้นทับโมเดลจริง)

@@ -54,11 +54,28 @@ jobs:
       - name: Assemble debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
-      # Advisory for now: reports lint findings without failing the build until
-      # a lint baseline is committed.
-      - name: Android Lint (advisory)
-        continue-on-error: true
+      # Hard gate: `abortOnError` is on (see app/build.gradle.kts), so a lint
+      # error fails the build instead of being hidden behind continue-on-error.
+      # Warnings stay advisory but are printed and uploaded below.
+      - name: Android Lint
         run: gradle :app:lintDebug --no-daemon
+
+      - name: Print lint summary
+        if: always()
+        run: |
+          report=app/build/reports/lint-results-debug.txt
+          if [ -f "$report" ]; then tail -40 "$report"; else echo "No text lint report produced"; fi
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: |
+            app/build/reports/lint-results-debug.txt
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+          if-no-files-found: ignore
 
       - name: Upload unit test report
         if: always()
@@ -75,3 +92,22 @@ jobs:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: ignore
+
+  model-tools:
+    name: Model tooling (python)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Standard library only, so there is nothing to install and the job stays
+      # fast. The TensorFlow-dependent integration tests skip themselves here;
+      # run them locally after `pip install "tensorflow>=2.15"`.
+      - name: Unit tests for tools/
+        run: python -m unittest discover -s tools/tests -v

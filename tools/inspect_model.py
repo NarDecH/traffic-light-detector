@@ -56,10 +56,19 @@ def quant_params(tensor: dict) -> tuple[list, list]:
     return [], []
 
 
+def shape_of(tensor: dict) -> list[int]:
+    """Tensor dimensions as plain ints.
+
+    Newer TensorFlow versions report shape entries as numpy scalars, which would
+    print as `np.int32(1)` and break plain string comparisons in tests.
+    """
+    return [int(dimension) for dimension in tensor.get("shape", [])]
+
+
 def describe(tensor: dict) -> str:
     dtype = tensor.get("dtype")
     dtype_name = getattr(dtype, "__name__", str(dtype))
-    description = f"{tensor.get('name')}  shape={list(tensor.get('shape', []))}  dtype={dtype_name}"
+    description = f"{tensor.get('name')}  shape={shape_of(tensor)}  dtype={dtype_name}"
 
     scales, zero_points = quant_params(tensor)
     if dtype_name not in ("float32", "float16") or any(scale != 0.0 for scale in scales):
@@ -74,17 +83,16 @@ def check_compatibility(inputs: list[dict], outputs: list[dict]) -> list[str]:
     if not inputs:
         problems.append("no input tensors found")
     else:
-        shape = list(inputs[0].get("shape", []))
+        shape = shape_of(inputs[0])
         if len(shape) != 4 or shape[3] != 3:
             problems.append(f"expected an NHWC [1, H, W, 3] input, found {shape}")
 
     if len(outputs) < 3:
         problems.append(f"expected >= 3 output tensors (boxes/classes/scores), found {len(outputs)}")
 
-    has_boxes = any(
-        len(list(tensor.get("shape", []))) == 3 and list(tensor["shape"])[2] == 4
-        for tensor in outputs
-    )
+    # Matched by shape, never by position: TFLite may reorder the subgraph
+    # outputs relative to the order the model was defined in (see docs/MODEL.md).
+    has_boxes = any(len(shape) == 3 and shape[2] == 4 for shape in map(shape_of, outputs))
     if not has_boxes:
         problems.append("no [1, N, 4] bounding-box output tensor found")
 

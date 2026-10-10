@@ -68,6 +68,25 @@ class FlattenTests(unittest.TestCase):
         self.assertEqual(inspect_model._to_list(FakeArray([0.1, 0.2])), [0.1, 0.2])
 
 
+class ShapeTests(unittest.TestCase):
+    def test_plain_dimensions_pass_through(self):
+        self.assertEqual(inspect_model.shape_of({"shape": [1, 320, 320, 3]}), [1, 320, 320, 3])
+
+    def test_numpy_style_dimensions_become_plain_ints(self):
+        class Dimension:
+            def __init__(self, value):
+                self._value = value
+
+            def __int__(self):
+                return self._value
+
+        tensor = {"shape": [Dimension(1), Dimension(10)]}
+        self.assertEqual(inspect_model.shape_of(tensor), [1, 10])
+
+    def test_missing_shape_is_empty(self):
+        self.assertEqual(inspect_model.shape_of({}), [])
+
+
 class QuantizationParamsTests(unittest.TestCase):
     def test_modern_quantization_parameters_are_read(self):
         tensor = {"quantization_parameters": {"scales": [0.0078], "zero_points": [0]}}

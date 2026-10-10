@@ -31,17 +31,28 @@
 รันพร้อมกันได้ทั้งชุด:
 
 ```bash
-python -m unittest discover -s tools/tests -v      # 32 เคส (ข้าม 4 ถ้าไม่มี TensorFlow)
+python -m unittest discover -s tools/tests -v      # 37 เคส (ข้าม 6 ถ้าไม่มี TensorFlow)
 ```
 
 | ไฟล์ | เคสที่ครอบคลุม | ตรวจอะไรเป็นพิเศษ |
 |------|----------------|--------------------|
-| `tests/test_inspect_model.py` | 22 เคส | การตัดสินว่าโมเดล "ใช้ได้กับแอป" หรือไม่ (NHWC, จำนวน output, ต้องมี tensor `[1, N, 4]`), การอ่าน quantization ทั้งรูปแบบใหม่ (`quantization_parameters`) และเก่า (`quantization` dict/tuple), การ flatten ค่าที่เป็น numpy array, การจัดรูปแบบบรรทัดสรุป และ exit code ของ CLI (ไม่มี argument = 2, ไฟล์หาย = 1) |
+| `tests/test_inspect_model.py` | 25 เคส | การตัดสินว่าโมเดล "ใช้ได้กับแอป" หรือไม่ (NHWC, จำนวน output, ต้องมี tensor `[1, N, 4]`), การอ่าน quantization ทั้งรูปแบบใหม่ (`quantization_parameters`) และเก่า (`quantization` dict/tuple), การ flatten ค่าที่เป็น numpy array, การแปลง shape ที่เป็น numpy scalar ให้เป็น int ธรรมดา, การจัดรูปแบบบรรทัดสรุป และ exit code ของ CLI (ไม่มี argument = 2, ไฟล์หาย = 1) |
 | `tests/test_make_dummy_model.py` | 6 เคส | ค่าเริ่มต้นของ `--output`/`--size`, การ parse flag, `--help` ต้องใช้ได้แม้ยังไม่ติดตั้ง TensorFlow |
-| `tests/test_model_contract.py` | 4 เคส | **ต้องมี TensorFlow** — สร้างโมเดลปลอมจริงแล้วยืนยันว่ามันผ่าน `check_compatibility()` และ output เรียงเป็น boxes/classes/scores/num ตามสัญญา (ข้ามอัตโนมัติเมื่อไม่มี TensorFlow เช่นใน CI) |
+| `tests/test_model_contract.py` | 6 เคส | **ต้องมี TensorFlow** — สร้างโมเดลปลอมจริงแล้วยืนยันว่ามันผ่าน `check_compatibility()`, input เป็น NHWC, มี tensor `[1, N, 4]` ตัวเดียว และรูปร่าง output ตรงสัญญา (เทียบเป็นชุด ไม่เทียบตำแหน่ง เพราะ converter อาจสลับลำดับ — ดู [MODEL.md](MODEL.md#โค้ดหาลำดับ-tensor-อย่างไร)) |
 
 CI รันชุดนี้ใน job `Model tooling (python)` แยกจาก job ของ Android เพื่อไม่ให้ช้าไปด้วยกัน
-ถ้าอยากให้เคส 4 ตัวสุดท้ายรันในเครื่องคุณ: `pip install "tensorflow>=2.15"` แล้วรันคำสั่งเดิมอีกครั้ง
+(ใน CI ไม่ได้ติดตั้ง TensorFlow เคส 6 ตัวหลังจึงข้ามเอง)
+
+ถ้าอยากให้ครบ 37 เคสในเครื่องคุณ ควรแยก venv ไว้ ไม่ให้ปนกับ Python ระบบ
+
+```bash
+python -m venv .venv                                # .venv/ ถูก gitignore ไว้แล้ว
+.venv/Scripts/python.exe -m pip install "tensorflow>=2.15"   # Windows
+# macOS/Linux: .venv/bin/pip install "tensorflow>=2.15"
+.venv/Scripts/python.exe -m unittest discover -s tools/tests -v
+```
+
+ตรวจแล้วบนเครื่อง Windows 11 + Python 3.14 + TensorFlow 2.22.0rc0: **37/37 ผ่าน ไม่มีเคสข้าม**
 
 ### สิ่งที่ unit test ยังไม่ครอบคลุม
 

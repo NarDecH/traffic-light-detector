@@ -67,16 +67,30 @@ class DummyModelContractTests(unittest.TestCase):
         shape = list(self.interpreter().get_input_details()[0]["shape"])
         self.assertEqual(shape, [1, TEST_INPUT_SIZE, TEST_INPUT_SIZE, 3])
 
-    def test_outputs_are_boxes_classes_scores_num_in_order(self):
-        outputs = sorted(self.interpreter().get_output_details(), key=lambda t: t["index"])
-        shapes = [list(tensor["shape"]) for tensor in outputs]
+    def test_outputs_are_boxes_classes_scores_and_num_detections(self):
+        # Asserted as a *multiset* of shapes on purpose: TFLite is free to reorder
+        # the subgraph outputs relative to the order the Keras model declared them
+        # (observed with TF 2.22 -- classes, num, boxes, scores), which is exactly
+        # why TrafficLightDetector resolves tensors by shape/name instead of
+        # relying on position. See docs/MODEL.md.
+        shapes = sorted(inspect_model.shape_of(t) for t in self.interpreter().get_output_details())
         boxes = make_dummy_model.NUM_BOXES
-        self.assertEqual(shapes, [[1, boxes, 4], [1, boxes], [1, boxes], [1, 1]])
+        self.assertEqual(shapes, sorted([[1, boxes, 4], [1, boxes], [1, boxes], [1, 1]]))
+
+    def test_exactly_one_bounding_box_tensor_exists(self):
+        shapes = [inspect_model.shape_of(t) for t in self.interpreter().get_output_details()]
+        self.assertEqual(sum(1 for shape in shapes if len(shape) == 3 and shape[2] == 4), 1)
+
+    def test_input_shape_is_reported_as_plain_ints(self):
+        # Guards the numpy-scalar formatting fix: TF 2.22 reports np.int32 dims.
+        text = inspect_model.describe(self.interpreter().get_input_details()[0])
+        self.assertIn(f"shape=[1, {TEST_INPUT_SIZE}, {TEST_INPUT_SIZE}, 3]", text)
 
     def test_inspect_model_describes_the_generated_model(self):
         interpreter = self.interpreter()
         described = [inspect_model.describe(t) for t in interpreter.get_output_details()]
-        self.assertTrue(any("detection_boxes" in text or "shape=[1, 10, 4]" in text for text in described))
+        boxes = make_dummy_model.NUM_BOXES
+        self.assertTrue(any(f"shape=[1, {boxes}, 4]" in text for text in described))
 
 
 if __name__ == "__main__":

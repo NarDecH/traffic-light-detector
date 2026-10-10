@@ -12,6 +12,14 @@
   ของโมเดลปลอม (4 เคสหลังต้องมี TensorFlow จึงจะรัน) พร้อม job `model-tools` ใน CI
 - **รายงาน lint เป็น artifact** — อัปโหลด `lint-results-debug.{txt,html,xml}` และพิมพ์สรุปใน log ของ CI
 
+### Fixed
+
+- `tools/inspect_model.py` พิมพ์ shape ที่เป็น numpy scalar (`np.int32(1)`) ออกมาตรง ๆ — แก้ให้แปลงเป็น int ธรรมดา
+  และเพิ่ม `shape_of()` ที่มีเทสต์คุมไว้
+- เทสต์สัญญาของโมเดลปลอมเดิมยืนยันลำดับ output ตามที่ประกาศใน Keras ซึ่งไม่จริง: converter (TF 2.22)
+  เก็บ subgraph output เป็น `classes, num, boxes, scores` — เปลี่ยนไปเทียบเป็นชุดของรูปร่าง
+  ซึ่งเป็นวิธีเดียวกับที่ `TrafficLightDetector` และ `inspect_model.py` ใช้จริง
+
 ### Changed
 
 - **lint กลายเป็นด่านจริง** — เอา `continue-on-error` ออกจาก `:app:lintDebug` และตั้ง `abortOnError`

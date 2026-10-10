@@ -34,6 +34,13 @@ TFLite ตัดชื่อ layer ทิ้งเมื่อ export ทำใ�
    ถ้าไม่มีชื่อ ก็ใช้ลำดับมาตรฐาน (`locations, classes, scores, num`) แล้ว **ตรวจซ้ำด้วยข้อมูลจริงในเฟรมแรก**:
    class index เป็นจำนวนเต็ม แต่ score ไม่ใช่ → ถ้าสลับกัน โค้ดจะสลับกลับให้พร้อม log เตือน
 
+> **อย่าอ้างลำดับ (index) ของ output tensor** — TFLite/MLIR converter อาจสลับลำดับ subgraph output
+> จากที่ประกาศไว้ตอนสร้างโมเดล **ตัวอย่างจริง**: โมเดลจาก `tools/make_dummy_model.py` ประกาศ output เป็น
+> `boxes, classes, scores, num` แต่ไฟล์ `.tflite` ที่แปลงด้วย TensorFlow 2.22 เก็บเป็น
+> `classes, num, boxes, scores` (ตรวจด้วย `schema.Model.Subgraphs(0).Outputs()` เทียบกับ `get_output_details()`)
+> ทั้งสองตัวให้ลำดับเดียวกัน แต่ไม่ใช่ลำดับที่ประกาศ — แอปจึงจับคู่ด้วย **shape + ชื่อ** ก่อนเสมอ
+> และ `tools/inspect_model.py` ก็ตรวจด้วยหลักการเดียวกัน (เทียบรูปร่าง ไม่เทียบตำแหน่ง)
+
 ### ค่า input scaling
 
 ตรวจจาก dtype และ quantization parameters ของ input tensor (override ได้ด้วย `Config.inputScaling`):

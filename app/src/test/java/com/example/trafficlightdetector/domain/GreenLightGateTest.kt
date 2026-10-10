@@ -28,8 +28,9 @@ class GreenLightGateTest {
 
     @Test
     fun `confirmation requires consecutive frames`() {
-        // Frame 1 and 2 are green, frame 3 is not: the streak restarts.
-        assertEquals(listOf(4), runSequence(0.8f, 0.8f, 0.6f, 0.8f, 0.8f, 0.8f))
+        // Frames 0 and 1 are green, frame 2 is not: the streak restarts, so the
+        // alarm lands on the third consecutive frame *after* the break (index 5).
+        assertEquals(listOf(5), runSequence(0.8f, 0.8f, 0.6f, 0.8f, 0.8f, 0.8f))
     }
 
     @Test

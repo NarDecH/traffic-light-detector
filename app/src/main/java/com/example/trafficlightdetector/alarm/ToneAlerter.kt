@@ -88,21 +88,19 @@ class ToneAlerter(
         pendingBeep = null
     }
 
+    /**
+     * Creates the generator on first use.
+     *
+     * The stream-based constructor is used deliberately: `STREAM_ALARM` routes
+     * the warning exactly like `USAGE_ALARM` does, and this overload is the one
+     * the Android SDK exposes on every API level the app supports (the
+     * `AudioAttributes` overload is not resolvable against compileSdk 36).
+     */
     private fun obtainToneGenerator(): ToneGenerator? {
         toneGenerator?.let { return it }
         return try {
-            val created = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ToneGenerator(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build(),
-                    volumePercent,
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                ToneGenerator(AudioManager.STREAM_ALARM, volumePercent)
-            }
+            @Suppress("DEPRECATION")
+            val created = ToneGenerator(AudioManager.STREAM_ALARM, volumePercent)
             toneGenerator = created
             created
         } catch (t: RuntimeException) {

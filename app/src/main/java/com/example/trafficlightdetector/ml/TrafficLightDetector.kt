@@ -6,6 +6,7 @@ import android.util.Log
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.Tensor
+import org.tensorflow.lite.Tensor.QuantizationParams
 import org.tensorflow.lite.gpu.GpuDelegate
 import org.tensorflow.lite.nnapi.NnApiDelegate
 import java.io.Closeable
@@ -86,8 +87,8 @@ class TrafficLightDetector private constructor(
 
     private val inputTensor: Tensor = interpreter.getInputTensor(0)
     private val quantizedInput = inputTensor.dataType() != DataType.FLOAT32
-    private val inputScale: Float = inputTensor.quantizationParams().scale.firstOrNull() ?: 0f
-    private val inputZeroPoint: Int = inputTensor.quantizationParams().zeroPoint.firstOrNull() ?: 0
+    private val inputScale: Float = inputTensor.quantizationParams().firstScale
+    private val inputZeroPoint: Int = inputTensor.quantizationParams().firstZeroPoint
     private val inputBuffer: ByteBuffer
     private val inputFloatView: java.nio.FloatBuffer?
     /** Affine pixel transform: `input = channel * scale + bias` (see [InputScaling]). */
@@ -309,7 +310,7 @@ class TrafficLightDetector private constructor(
 
     private fun bytesPerElement(dataType: DataType): Int = when (dataType) {
         DataType.FLOAT32, DataType.INT32 -> 4
-        DataType.FLOAT16, DataType.INT16 -> 2
+        DataType.INT16 -> 2
         else -> 1 // UINT8 / INT8 / BOOL
     }
 
@@ -400,8 +401,8 @@ class TrafficLightDetector private constructor(
         private val quantized = dataType == DataType.UINT8 || dataType == DataType.INT8
         /** INT8 tensors hold signed values, UINT8 tensors unsigned ones. */
         private val signedBytes = dataType == DataType.INT8
-        private val scale: Float = tensor.quantizationParams().scale.firstOrNull() ?: 0f
-        private val zeroPoint: Int = tensor.quantizationParams().zeroPoint.firstOrNull() ?: 0
+        private val scale: Float = tensor.quantizationParams().firstScale
+        private val zeroPoint: Int = tensor.quantizationParams().firstZeroPoint
         private var buffer: ByteBuffer? = null
         private var floatView: java.nio.FloatBuffer? = null
         private var intView: java.nio.IntBuffer? = null
@@ -532,3 +533,15 @@ class TrafficLightDetector private constructor(
         }
     }
 }
+
+/**
+ * Quantisation params are **empty** for an un-quantised tensor, so the values
+ * are read through these two helpers instead of indexing the arrays blindly.
+ * The fallbacks are the neutral ones: a scale of 1 leaves values untouched and
+ * a zero point of 0 is the identity offset.
+ */
+private val QuantizationParams.firstScale: Float
+    get() = if (scale.size == 0) 1f else scale[0]
+
+private val QuantizationParams.firstZeroPoint: Int
+    get() = if (zeroPoint.size == 0) 0 else zeroPoint[0]

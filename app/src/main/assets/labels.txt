@@ -1,0 +1,14 @@
+# Class labels for the traffic-light detection model, one per line.
+#
+# The line number (0-based) is the class index reported by the TFLite model, so
+# this file MUST list the labels in the same order as the model's label map:
+#
+#   0 -> red_light
+#   1 -> yellow_light
+#   2 -> green_light
+#
+# Keep these exact strings: TrafficLightClass matches them (case / space / dash
+# insensitive) to decide whether an alarm must be raised.
+red_light
+yellow_light
+green_light

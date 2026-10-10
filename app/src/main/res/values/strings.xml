@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Traffic Light Detector</string>
+
+    <string name="state_initialising">Loading model…</string>
+    <string name="state_running">Detecting…</string>
+    <string name="state_alarm">GREEN LIGHT — GO</string>
+    <string name="state_error">Model error</string>
+
+    <string name="detection_placeholder">no detections yet</string>
+    <string name="perf_placeholder">inference – ms · – fps</string>
+
+    <string name="alarm_enabled">Alarm on green light</string>
+    <string name="threshold_placeholder">Confidence threshold: 70%%</string>
+    <string name="threshold_format">Confidence threshold: %1$d%%</string>
+
+    <string name="permission_required">Camera permission is required to detect traffic lights.</string>
+    <string name="camera_error">Camera error: %1$s</string>
+</resources>

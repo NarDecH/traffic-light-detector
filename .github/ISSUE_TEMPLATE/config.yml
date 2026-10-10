@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: วิธีแก้ปัญหาที่พบบ่อย
+    url: https://github.com/OWNER/REPO/blob/main/docs/TROUBLESHOOTING.md
+    about: ตรวจดูก่อนเปิด issue — ปัญหาโมเดล/พิกัด/เสียง ส่วนใหญ่มีคำตอบอยู่แล้ว
+  - name: แนวทางพัฒนาต่อ
+    url: https://github.com/OWNER/REPO/blob/main/docs/ROADMAP.md
+    about: ดูว่าฟีเจอร์ที่อยากได้อยู่ในแผนแล้วหรือยัง

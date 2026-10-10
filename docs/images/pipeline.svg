@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 430" width="1400" height="430" role="img" aria-label="Detection pipeline from CameraX to TensorFlow Lite to the alarm gate">
+  <title>Traffic Light Detector — detection pipeline</title>
+  <style>
+    .bg { fill: #0d1117; }
+    .title { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #e6edf3; }
+    .subtitle { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; fill: #8b949e; }
+    .zone { fill: none; stroke: #8b949e; stroke-width: 1.5; stroke-dasharray: 7 6; }
+    .zone-ui { fill: none; stroke: #58a6ff; stroke-width: 1.5; stroke-dasharray: 7 6; }
+    .zone-label { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; fill: #8b949e; letter-spacing: 0.4px; }
+    .zone-label-ui { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; fill: #58a6ff; letter-spacing: 0.4px; }
+    .box { fill: #161b22; stroke: #30363d; stroke-width: 1.5; }
+    .box-alt { fill: #12212c; stroke: #2f6f8f; stroke-width: 1.5; }
+    .box-title { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 700; fill: #e6edf3; }
+    .box-line { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12.5px; fill: #a9b4bf; }
+    .data { font-family: 'Consolas', 'SFMono-Regular', monospace; font-size: 12px; fill: #6fb3d1; }
+    .flow { stroke: #6fb3d1; stroke-width: 2; fill: none; }
+    .foot { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; fill: #8b949e; }
+    .hl { fill: #56d364; font-weight: 700; }
+  </style>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6fb3d1" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1400" height="430" />
+
+  <text class="title" x="30" y="46">Traffic Light Detector — detection pipeline</text>
+  <text class="subtitle" x="30" y="74">CameraX → TensorFlow Lite → alarm gate, wired through MVVM</text>
+
+  <!-- thread zones -->
+  <rect class="zone" x="20" y="104" width="726" height="256" rx="14" />
+  <text class="zone-label" x="36" y="130">camera + inference · single analysis thread (executor)</text>
+  <rect class="zone-ui" x="760" y="104" width="620" height="256" rx="14" />
+  <text class="zone-label-ui" x="776" y="130">analysis callback + main thread · MVVM state</text>
+
+  <!-- stage 1 -->
+  <rect class="box" x="40" y="150" width="200" height="112" rx="10" />
+  <text class="box-title" x="140" y="184" text-anchor="middle">CameraX</text>
+  <text class="box-line" x="140" y="208" text-anchor="middle">Preview + ImageAnalysis</text>
+  <text class="box-line" x="140" y="228" text-anchor="middle">4:3 · KEEP_ONLY_LATEST</text>
+  <text class="box-line" x="140" y="248" text-anchor="middle">OUTPUT_IMAGE_FORMAT_RGBA</text>
+
+  <!-- stage 2 -->
+  <rect class="box" x="290" y="150" width="200" height="112" rx="10" />
+  <text class="box-title" x="390" y="184" text-anchor="middle">upright Bitmap</text>
+  <text class="box-line" x="390" y="208" text-anchor="middle">RGBA → ARGB_8888</text>
+  <text class="box-line" x="390" y="228" text-anchor="middle">rotate by rotationDegrees</text>
+  <text class="box-line" x="390" y="248" text-anchor="middle">YUV_420_888 fallback</text>
+
+  <!-- stage 3 -->
+  <rect class="box" x="540" y="150" width="200" height="112" rx="10" />
+  <text class="box-title" x="640" y="184" text-anchor="middle">TFLite Interpreter</text>
+  <text class="box-line" x="640" y="208" text-anchor="middle">input 320×320 NHWC</text>
+  <text class="box-line" x="640" y="228" text-anchor="middle">GPU → NNAPI → CPU x4</text>
+  <text class="box-line" x="640" y="248" text-anchor="middle">float32 / INT8 / UINT8</text>
+
+  <!-- stage 4 -->
+  <rect class="box" x="780" y="150" width="200" height="112" rx="10" />
+  <text class="box-title" x="880" y="184" text-anchor="middle">Post-process</text>
+  <text class="box-line" x="880" y="208" text-anchor="middle">score filter 0.5 · labels</text>
+  <text class="box-line" x="880" y="228" text-anchor="middle">NMS IoU 0.5 · max 10</text>
+  <text class="box-line" x="880" y="248" text-anchor="middle">boxes → 0..1 coordinates</text>
+
+  <!-- stage 5 -->
+  <rect class="box-alt" x="1030" y="150" width="200" height="112" rx="10" />
+  <text class="box-title" x="1130" y="184" text-anchor="middle">GreenLightGate</text>
+  <text class="box-line" x="1130" y="208" text-anchor="middle">green &gt; 0.70 confidence</text>
+  <text class="box-line" x="1130" y="228" text-anchor="middle">3 consecutive frames</text>
+  <text class="box-line" x="1130" y="248" text-anchor="middle">latch + 5 s cooldown</text>
+
+  <!-- consumers -->
+  <rect class="box" x="780" y="292" width="200" height="52" rx="10" />
+  <text class="box-line" x="880" y="323" text-anchor="middle">OverlayView — bounding boxes</text>
+  <rect class="box" x="1030" y="292" width="200" height="52" rx="10" />
+  <text class="box-line" x="1130" y="317" text-anchor="middle">ToneAlerter — beep (ToneGenerator)</text>
+  <text class="box-line" x="1130" y="334" text-anchor="middle">one alarm per green phase</text>
+
+  <!-- flows -->
+  <path class="flow" d="M240,206 L288,206" marker-end="url(#arrow)" />
+  <path class="flow" d="M490,206 L538,206" marker-end="url(#arrow)" />
+  <path class="flow" d="M740,206 L778,206" marker-end="url(#arrow)" />
+  <path class="flow" d="M980,206 L1028,206" marker-end="url(#arrow)" />
+  <path class="flow" d="M1130,262 L1130,290" marker-end="url(#arrow)" />
+  <path class="flow" d="M1030,318 L982,318" marker-end="url(#arrow)" />
+
+  <text class="data" x="264" y="196" text-anchor="middle">ImageProxy</text>
+  <text class="data" x="514" y="196" text-anchor="middle">Bitmap</text>
+  <text class="data" x="744" y="196" text-anchor="end">4 tensors</text>
+  <text class="data" x="1004" y="196" text-anchor="middle">Detections</text>
+  <text class="data" x="1150" y="280" text-anchor="middle">alarm event</text>
+  <text class="data" x="996" y="304" text-anchor="middle">StateFlow</text>
+
+  <text class="foot" x="30" y="396">
+    <tspan class="hl">green_light</tspan>
+    <tspan> with confidence &gt; 70% in 3 consecutive frames raises </tspan>
+    <tspan class="hl">exactly one</tspan>
+    <tspan> alarm; the gate re-arms only after the light disappears.</tspan>
+  </text>
+</svg>

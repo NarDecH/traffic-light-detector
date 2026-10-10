@@ -1,0 +1,44 @@
+name: ขอฟีเจอร์ (Feature request)
+description: เสนอความสามารถใหม่หรือการปรับปรุง
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: ปัญหาหรือความต้องการ
+      description: อยากให้แก้ปัญหาอะไร (เล่าจากสถานการณ์จริงได้ยิ่งดี)
+      placeholder: ตอนกลางคืนไฟเขียวที่ไกล 20 เมตรตรวจไม่เจอ เพราะภาพมืด
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: แนวทางที่คิดไว้
+      description: ถ้ามีไอเดียว่าควรทำอย่างไร (ไม่บังคับ)
+      placeholder: ปรับ gamma ก่อนส่งเข้าโมเดล เมื่อค่าเฉลี่ยความสว่างต่ำกว่าค่า threshold
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: เกี่ยวกับส่วนไหน
+      options:
+        - การตรวจจับ / โมเดล
+        - กติกาการเตือน (gate)
+        - เสียง / การแจ้งเตือน
+        - UI / overlay
+        - เครื่องมือโมเดล (Python)
+        - เอกสาร / CI
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: ขอบเขต
+      options:
+        - label: ผมยินดีส่ง PR ให้เอง
+        - label: ฟีเจอร์นี้แตะ docs/ROADMAP.md อยู่แล้ว

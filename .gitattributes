@@ -1,0 +1,19 @@
+# Normalize text files so the repo stays consistent across Windows/macOS/Linux
+* text=auto eol=lf
+
+# Binary files (never diff/merge textually)
+*.tflite binary
+*.lite binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.jar binary
+*.apk binary
+*.aab binary
+
+# SVGs and Markdown diffs are readable in reviews
+*.svg text
+*.md text
+*.xml text
+*.gradle.kts text

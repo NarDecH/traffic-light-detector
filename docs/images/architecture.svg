@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 940" width="1240" height="940" role="img" aria-label="Layered architecture of the app: UI, MVVM, domain, camera and machine learning layers">
+  <title>Traffic Light Detector — layered architecture</title>
+  <style>
+    .bg { fill: #0d1117; }
+    .title { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #e6edf3; }
+    .subtitle { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; fill: #8b949e; }
+    .layer { fill: none; stroke-width: 1.5; stroke-dasharray: 7 6; }
+    .l-ui { stroke: #58a6ff; }
+    .l-vm { stroke: #d2a8ff; }
+    .l-domain { stroke: #56d364; }
+    .l-camera { stroke: #6fb3d1; }
+    .l-ml { stroke: #f0883e; }
+    .l-assets { stroke: #8b949e; }
+    .layer-label { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; letter-spacing: 0.5px; }
+    .k-ui { fill: #58a6ff; }
+    .k-vm { fill: #d2a8ff; }
+    .k-domain { fill: #56d364; }
+    .k-camera { fill: #6fb3d1; }
+    .k-ml { fill: #f0883e; }
+    .k-assets { fill: #8b949e; }
+    .box { fill: #161b22; stroke: #30363d; stroke-width: 1.5; }
+    .box-title { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14.5px; font-weight: 700; fill: #e6edf3; }
+    .box-line { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11.5px; fill: #a9b4bf; }
+    .flow { stroke: #6fb3d1; stroke-width: 2; fill: none; }
+    .flow-dashed { stroke: #d2a8ff; stroke-width: 2; fill: none; stroke-dasharray: 8 6; }
+    .lbl { font-family: 'Consolas', 'SFMono-Regular', monospace; font-size: 12.5px; fill: #6fb3d1; }
+    .lbl-purple { font-family: 'Consolas', 'SFMono-Regular', monospace; font-size: 12.5px; fill: #d2a8ff; }
+    .foot { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; fill: #8b949e; }
+  </style>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6fb3d1" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d2a8ff" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1240" height="940" />
+
+  <text class="title" x="30" y="46">Layered architecture</text>
+  <text class="subtitle" x="30" y="74">one direction of data flow: camera frames in, bounding boxes and one alarm out</text>
+
+  <!-- UI layer -->
+  <rect class="layer l-ui" x="30" y="100" width="1180" height="130" rx="14" />
+  <text class="layer-label k-ui" x="46" y="126">UI LAYER · main thread</text>
+  <rect class="box" x="60" y="140" width="250" height="70" rx="9" />
+  <text class="box-title" x="185" y="168" text-anchor="middle">MainActivity</text>
+  <text class="box-line" x="185" y="190" text-anchor="middle">layout, permission, render(state)</text>
+  <rect class="box" x="330" y="140" width="250" height="70" rx="9" />
+  <text class="box-title" x="455" y="168" text-anchor="middle">OverlayView + BoxMapper</text>
+  <text class="box-line" x="455" y="190" text-anchor="middle">draws the bounding boxes</text>
+  <rect class="box" x="600" y="140" width="250" height="70" rx="9" />
+  <text class="box-title" x="725" y="168" text-anchor="middle">ToneAlerter</text>
+  <text class="box-line" x="725" y="190" text-anchor="middle">ToneGenerator + vibration</text>
+  <rect class="box" x="870" y="140" width="310" height="70" rx="9" />
+  <text class="box-title" x="1025" y="168" text-anchor="middle">PreviewView (CameraX)</text>
+  <text class="box-line" x="1025" y="190" text-anchor="middle">fitCenter surface + the same 4:3 ratio</text>
+
+  <!-- MVVM -->
+  <rect class="layer l-vm" x="30" y="290" width="1180" height="130" rx="14" />
+  <text class="layer-label k-vm" x="46" y="316">MVVM LAYER · main thread</text>
+  <rect class="box" x="60" y="330" width="430" height="70" rx="9" />
+  <text class="box-title" x="275" y="358" text-anchor="middle">MainViewModel</text>
+  <text class="box-line" x="275" y="380" text-anchor="middle">owns the detector, runs the gate, publishes events</text>
+  <rect class="box" x="520" y="330" width="300" height="70" rx="9" />
+  <text class="box-title" x="670" y="358" text-anchor="middle">MainUiState</text>
+  <text class="box-line" x="670" y="380" text-anchor="middle">immutable snapshot for the view</text>
+  <rect class="box" x="850" y="330" width="330" height="70" rx="9" />
+  <text class="box-title" x="1015" y="358" text-anchor="middle">StateFlow / SharedFlow</text>
+  <text class="box-line" x="1015" y="380" text-anchor="middle">state stream + one-shot alarm events</text>
+
+  <!-- Domain -->
+  <rect class="layer l-domain" x="30" y="480" width="1180" height="130" rx="14" />
+  <text class="layer-label k-domain" x="46" y="506">DOMAIN LAYER · analysis thread</text>
+  <rect class="box" x="60" y="520" width="340" height="70" rx="9" />
+  <text class="box-title" x="230" y="548" text-anchor="middle">TrafficLightAnalyzer</text>
+  <text class="box-line" x="230" y="570" text-anchor="middle">ImageAnalysis.Analyzer · throttles to ~10 fps</text>
+  <rect class="box" x="420" y="520" width="340" height="70" rx="9" />
+  <text class="box-title" x="590" y="548" text-anchor="middle">GreenLightGate</text>
+  <text class="box-line" x="590" y="570" text-anchor="middle">&gt;70% · debounce · one alarm per phase</text>
+  <rect class="box" x="780" y="520" width="400" height="70" rx="9" />
+  <text class="box-title" x="980" y="548" text-anchor="middle">DetectionFrame / Detection</text>
+  <text class="box-line" x="980" y="570" text-anchor="middle">normalised 0..1 boxes — the layer's language</text>
+
+  <!-- Camera + ML -->
+  <rect class="layer l-camera" x="30" y="670" width="570" height="130" rx="14" />
+  <text class="layer-label k-camera" x="46" y="696">CAMERA LAYER</text>
+  <rect class="box" x="60" y="710" width="250" height="70" rx="9" />
+  <text class="box-title" x="185" y="738" text-anchor="middle">CameraController</text>
+  <text class="box-line" x="185" y="760" text-anchor="middle">binds Preview + ImageAnalysis</text>
+  <rect class="box" x="330" y="710" width="250" height="70" rx="9" />
+  <text class="box-title" x="455" y="738" text-anchor="middle">ImageProxyExt</text>
+  <text class="box-line" x="455" y="760" text-anchor="middle">frame → upright Bitmap</text>
+
+  <rect class="layer l-ml" x="640" y="670" width="570" height="130" rx="14" />
+  <text class="layer-label k-ml" x="656" y="696">MACHINE LEARNING LAYER</text>
+  <rect class="box" x="670" y="710" width="250" height="70" rx="9" />
+  <text class="box-title" x="795" y="738" text-anchor="middle">TrafficLightDetector</text>
+  <text class="box-line" x="795" y="760" text-anchor="middle">interpreter, quantization, decode</text>
+  <rect class="box" x="940" y="710" width="250" height="70" rx="9" />
+  <text class="box-title" x="1065" y="738" text-anchor="middle">NonMaxSuppression</text>
+  <text class="box-line" x="1065" y="760" text-anchor="middle">IoU + TensorMath + labels</text>
+
+  <!-- Assets -->
+  <rect class="layer l-assets" x="30" y="840" width="1180" height="72" rx="14" />
+  <text class="layer-label k-assets" x="46" y="866">ASSETS</text>
+  <rect class="box" x="170" y="852" width="330" height="48" rx="9" />
+  <text class="box-line" x="335" y="881" text-anchor="middle">assets/traffic_light.tflite — detection model</text>
+  <rect class="box" x="540" y="852" width="330" height="48" rx="9" />
+  <text class="box-line" x="705" y="881" text-anchor="middle">assets/labels.txt — red / yellow / green</text>
+  <rect class="box" x="910" y="852" width="280" height="48" rx="9" />
+  <text class="box-line" x="1050" y="881" text-anchor="middle">tools/*.py — export + inspect</text>
+
+  <!-- data flows -->
+  <path class="flow" d="M700,300 L700,286" marker-end="url(#arrow)" />
+  <text class="lbl" x="712" y="296">MainUiState</text>
+  <path class="flow" d="M1060,300 L1060,286" marker-end="url(#arrow)" />
+  <text class="lbl" x="1072" y="296">alarm event</text>
+
+  <path class="flow" d="M300,490 L300,476" marker-end="url(#arrow)" />
+  <text class="lbl" x="312" y="486">DetectionFrame</text>
+  <path class="flow" d="M900,490 L900,476" marker-end="url(#arrow)" />
+  <text class="lbl" x="912" y="486">detections + gate state</text>
+
+  <path class="flow" d="M320,680 L320,666" marker-end="url(#arrow)" />
+  <text class="lbl" x="332" y="676">Bitmap</text>
+  <!-- ViewModel hands the detector to the analyzer once (no layer reaches back) -->
+  <path class="flow-dashed" d="M900,262 L1195,262 L1195,690 L900,690 L900,706" marker-end="url(#arrow-purple)" />
+  <text class="lbl-purple" x="900" y="256">detector handed over once</text>
+
+  <path class="flow" d="M1010,680 L1010,666" marker-end="url(#arrow)" />
+  <text class="lbl" x="1022" y="676">List&lt;Detection&gt;</text>
+
+  <text class="foot" x="30" y="935">Solid arrows = data flow · dashed purple = the ViewModel hands its detector to the analyzer once, so no layer reaches back into another.</text>
+</svg>

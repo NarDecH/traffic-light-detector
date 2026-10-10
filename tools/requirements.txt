@@ -1,0 +1,9 @@
+# Training / export tooling (only needed to produce traffic_light.tflite).
+#
+# tflite-model-maker is unmaintained and requires Python 3.9-3.11 with
+# TensorFlow <= 2.15. On newer interpreters, train with the TensorFlow Model
+# Garden (or any detector) and export with the TFLite converter instead --
+# only the model's I/O contract matters to the app.
+tensorflow==2.15.1
+tflite-model-maker==0.4.3
+numpy<2.0

@@ -1,0 +1,36 @@
+# ---- Android / Gradle ----
+*.iml
+.gradle/
+/build
+app/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.hprof
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Generates the Gradle wrapper jar locally (see README "Quick start")
+gradle/wrapper/gradle-wrapper.jar
+
+# ---- IDE / OS ----
+/.idea/
+.DS_Store
+Thumbs.db
+
+# ---- Python tooling (model scripts) ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/tflite_export/
+
+# ---- Freebuff workspace metadata ----
+.freebuff/
+
+# NOTE: app/src/main/assets/*.tflite is intentionally NOT ignored — the model
+# is a project artifact. Just make sure you commit a real trained model, not the
+# dummy one produced by tools/make_dummy_model.py.

@@ -1,0 +1,70 @@
+name: รายงานบั๊ก (Bug report)
+description: รายงานพฤติกรรมที่ผิดพลาดของแอปหรือสคริปต์
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ขอบคุณที่ช่วยรายงาน 🙏 กรุณากรอกให้ครบเพื่อให้ตรวจสอบได้เร็ว
+        อาการ "ตรวจไม่เจออะไรเลย" มักมาจาก input scaling — ลองตาม docs/TROUBLESHOOTING.md ก่อน
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: เกิดอะไรขึ้น
+      description: อธิบายอาการที่เห็น และสิ่งที่คาดว่าจะเกิดขึ้น
+      placeholder: |
+        ชี้ที่ไฟเขียวแล้วขึ้นกรอบ แต่ไม่มีเสียงเตือน ถึงแม้ confidence 92%
+        คาดว่าต้องมีเสียงบี๊บ 1 ครั้ง
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: ส่วนที่เกี่ยวข้อง
+      options:
+        - การตรวจจับ (โมเดล / พิกัดกรอบ)
+        - เสียงเตือน / debounce
+        - กล้อง (CameraX)
+        - UI / overlay
+        - การเทรนหรือ export โมเดล
+        - เอกสาร
+        - อื่น ๆ
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: อุปกรณ์และ Android version
+      placeholder: Pixel 7, Android 15
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: โมเดลที่ใช้
+      placeholder: efficientdet-lite0, INT8, input 320x320 (หรือ "dummy model")
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: logcat หรือข้อความ error
+      description: "adb logcat -s TrafficLightDetector:I MainViewModel:I ToneAlerter:I"
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: ตรวจสอบเบื้องต้นแล้ว
+      options:
+        - label: รัน `python tools/inspect_model.py <model>` แล้วได้ "Compatible"
+        - label: อ่าน docs/TROUBLESHOOTING.md แล้วแต่ยังไม่หาย
+        - label: ทดสอบกับ `tools/make_dummy_model.py` แล้ว (เพื่อแยกว่าเป็นปัญหาที่ pipeline หรือที่โมเดล)

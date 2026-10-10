@@ -62,3 +62,32 @@
 | `TensorFlow is required` | ยังไม่ได้ลง TF | `pip install tensorflow` (สำหรับ `inspect_model.py` / `make_dummy_model.py`) |
 | `export_tflite.py` บอก `Missing dataset directory` | โครงสร้างโฟลเดอร์ไม่ตรง | ต้องมี `dataset/train/images`, `dataset/train/annotations` ตาม [MODEL.md](MODEL.md) |
 | เทรนแล้วโมเดลไม่ detect อะไรเลย | label map ไม่ตรงกับ XML, หรือ class ไม่สมดุล | ตรวจ `VOC_LABEL_MAP` ให้ตรงกับ `<name>` ใน XML และกระจายคลาสให้สมดุล |
+
+## สภาพแวดล้อมการ build (JDK / Android SDK)
+
+ชุดที่ทดสอบผ่านจริงบน Windows 11: **JDK 17.0.20.1 + Android SDK Platform 36 + build-tools 35.0.0 + Gradle 8.11.1**
+(`gradle :app:testDebugUnitTest` → 30/30 ผ่าน, `gradle :app:assembleDebug` → ได้ APK)
+
+| อาการ | สาเหตุ | วิธีแก้ |
+|-------|--------|---------|
+| `Could not determine the dependencies of task ':app:testDebugUnitTest'` พร้อม `java.io.IOException: The filename, directory name, or volume label syntax is incorrect` | `sdk.dir` ใน `local.properties` ถูกเขียนแบบ escape ของ Windows (`C\:\\Users\\...\\Sdk`) แล้ว Gradle ที่รันจาก command line อ่านได้ค่าที่มี `\:` ติดอยู่ จึงเป็น path ที่ผิด | เขียนด้วย forward slash: `sdk.dir=C:/Users/<user>/AppData/Local/Android/Sdk` (เปิดโปรเจกต์ใน Android Studio ทีหลังมันจะเขียนทับให้เอง) |
+| Gradle ล้มทันทีด้วย `Unsupported class file major version` / `Unsupported Java` | ตั้ง `JAVA_HOME` ไปที่ JDK ใหม่เกินไป — Android Studio รุ่นใหม่ฝัง JBR 25 ไว้ แต่ Gradle 8.11.1 + AGP 8.9 ต้องใช้ **JDK 17** | `export JAVA_HOME="C:/Program Files/Java/jdk-17.0.20.1"` หรือตั้ง Gradle JDK เป็น 17 ใน Android Studio (Settings → Build Tools → Gradle) |
+| CI ล้มที่ `Failed to find package 'tools'` | แพ็กเกจ `tools` ถูกถอดออกจาก SDK repository แล้ว แต่ `android-actions/setup-android` ยังขออยู่ | ติดตั้ง `platform-tools platforms;android-36 build-tools;35.0.0` แทน (ทำไว้แล้วใน `.github/workflows/android.yml`) |
+| ไม่รู้ว่าเครื่องมี SDK อะไรแล้วบ้าง | — | `"%LOCALAPPDATA%\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat" --list_installed` |
+| ไม่มี Android Studio แต่อยาก build จาก command line | — | ดูวิธีติดตั้งด้านล่าง |
+
+### ติดตั้ง Android SDK จาก command line
+
+```bash
+# 1) ดาวน์โหลด command-line tools จาก dl.google.com แล้ววางที่
+#    %LOCALAPPDATA%\Android\Sdk\cmdline-tools\latest\
+# 2) ยอมรับไลเซนส์ + ติดตั้งคอมโพเนนต์ที่โปรเจกต์ต้องใช้ (ต้องมี JDK 17 ใน JAVA_HOME)
+SDKMANAGER="%LOCALAPPDATA%\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat"
+"$SDKMANAGER" --licenses
+"$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;35.0.0"
+# 3) ชี้ Gradle มาที่ SDK ด้วย forward slash
+printf 'sdk.dir=C:/Users/<user>/AppData/Local/Android/Sdk\n' > local.properties
+```
+
+โปรเจกต์นี้ **ไม่ commit `gradle/wrapper/gradle-wrapper.jar`** จึงไม่มี `./gradlew` ติดมา — ถ้ามี Gradle ในเครื่องให้สั่ง
+`gradle wrapper --gradle-version 8.11.1` ครั้งเดียวเพื่อสร้าง wrapper ขึ้นมาเอง (หรือเปิดผ่าน Android Studio)

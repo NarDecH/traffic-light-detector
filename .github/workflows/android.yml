@@ -29,8 +29,17 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # The action's default package list starts with "tools", a package that
+      # no longer exists in the SDK repository, so sdkmanager exits with
+      # "Failed to find package 'tools'". Ask for the components this build
+      # really needs instead: the compileSdk 36 platform and the build-tools
+      # version AGP 8.9 defaults to.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;35.0.0"
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
 
       # The Gradle wrapper jar is intentionally not committed, so CI provides
       # Gradle itself instead of running ./gradlew.

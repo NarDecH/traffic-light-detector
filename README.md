@@ -10,6 +10,7 @@
 ![CameraX](https://img.shields.io/badge/CameraX-1.5.0-3ddc84)
 ![TensorFlow Lite](https://img.shields.io/badge/TensorFlow%20Lite-2.16.1-ff6f00)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+[![Android CI](https://github.com/NarDecH/traffic-light-detector/actions/workflows/android.yml/badge.svg)](https://github.com/NarDecH/traffic-light-detector/actions/workflows/android.yml)
 
 ![Detection pipeline](docs/images/pipeline.svg)
 
@@ -63,7 +64,8 @@
 ## เริ่มต้นอย่างรวดเร็ว
 
 ```bash
-git clone <your-fork-url> && cd traffic-light-detector-android
+git clone https://github.com/NarDecH/traffic-light-detector.git
+cd traffic-light-detector
 
 # 1) โมเดล: วางไฟล์ไว้ที่ app/src/main/assets/traffic_light.tflite
 #    (ยังไม่มีโมเดล? ใช้โมเดลปลอมเพื่อทดสอบ pipeline ทั้งเส้น)

@@ -12,7 +12,8 @@
 | Python (เฉพาะงานโมเดล) | 3.9–3.11 สำหรับ `tflite-model-maker`, ≥ 3.10 สำหรับ `inspect_model.py` |
 
 ```bash
-git clone <your-fork-url> && cd traffic-light-detector-android
+git clone https://github.com/NarDecH/traffic-light-detector.git
+cd traffic-light-detector
 ./gradlew :app:testDebugUnitTest     # unit test ต้องผ่านก่อนส่ง PR
 ./gradlew :app:assembleDebug         # ต้อง compile ผ่าน
 ```

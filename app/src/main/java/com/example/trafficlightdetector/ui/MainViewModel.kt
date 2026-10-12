@@ -93,6 +93,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     it.copy(
                         detectorStatus = DetectorStatus.Running,
                         acceleration = created.accelerationDescription,
+                        // Usually empty; when GPU/NNAPI was rejected this is what
+                        // explains the slower backend on screen.
+                        acceleratorFallbacks = created.acceleratorFallbacks,
                     )
                 }
             } catch (t: Throwable) {

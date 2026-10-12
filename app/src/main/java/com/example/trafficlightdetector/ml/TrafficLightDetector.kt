@@ -41,6 +41,8 @@ class TrafficLightDetector private constructor(
     private val config: Config,
     private val acceleration: String,
     private val activeDelegate: Any?,
+    /** Accelerators rejected on the way to [acceleration], in the order tried. */
+    val acceleratorFallbacks: List<AcceleratorFallback> = emptyList(),
 ) : Closeable {
 
     data class Config(
@@ -159,6 +161,13 @@ class TrafficLightDetector private constructor(
     @Synchronized
     fun detect(bitmap: Bitmap): List<Detection> {
         fillInputBuffer(bitmap)
+        // TFLite's `Tensor.copyTo(dst)` writes with `dst.put(tensorBuffer)`, which is
+        // bounded by the destination's *remaining* bytes -- capacity is only checked
+        // once, up front. A buffer that already holds a frame therefore overflows on
+        // the next one (`BufferOverflowException: null` on every frame after the
+        // first, seen on a real device). Rewind before every run; this also recovers
+        // from a run that failed halfway through.
+        for (buffer in outputBuffers) buffer.rewind()
         // Note: `Interpreter.run(input, output)` only fills output index 0, which
         // would silently ignore 3 of the 4 detection tensors.
         interpreter.runForMultipleInputsOutputs(arrayOf<Any>(inputBuffer), outputBufferMap)
@@ -265,8 +274,10 @@ class TrafficLightDetector private constructor(
         scaled.getPixels(pixelBuffer, 0, inputWidth, 0, 0, inputWidth, inputHeight)
         if (scaled !== bitmap) scaled.recycle()
 
+        // Absolute puts below never move the position, but rewind anyway so the
+        // buffer state is explicit and independent of the branch taken.
+        inputBuffer.rewind()
         if (quantizedInput) {
-            inputBuffer.rewind()
             for (index in pixelBuffer.indices) {
                 val color = pixelBuffer[index]
                 val base = index * 3
@@ -452,6 +463,10 @@ class TrafficLightDetector private constructor(
          * Loads [MODEL_ASSET] and builds the interpreter, preferring the GPU
          * delegate, then NNAPI, then the multi-threaded CPU kernel (XNNPACK).
          *
+         * Every rejected backend is recorded on the returned detector
+         * ([TrafficLightDetector.acceleratorFallbacks]) with the reason, so the
+         * UI can explain a fallback instead of just logging it.
+         *
          * @throws IllegalStateException when the asset is missing or unusable.
          */
         fun create(context: Context, config: Config = Config()): TrafficLightDetector {
@@ -465,6 +480,9 @@ class TrafficLightDetector private constructor(
             }
 
             var lastError: Throwable? = null
+            // Kept across attempts so the caller can show *why* it ended up on
+            // a slower backend (see MainUiState.acceleratorFallbacks).
+            val fallbacks = ArrayList<AcceleratorFallback>(attempts.size)
             for (attempt in attempts) {
                 var delegate: Any? = null
                 var interpreter: Interpreter? = null
@@ -483,18 +501,27 @@ class TrafficLightDetector private constructor(
                         config = config,
                         acceleration = attempt.name,
                         activeDelegate = delegate,
+                        acceleratorFallbacks = fallbacks.toList(),
                     )
                 } catch (t: Throwable) {
                     lastError = t
-                    Log.w(TAG, "Falling back from the ${attempt.name} backend: ${t.message}")
+                    val fallback = AcceleratorFallback.of(attempt.name, t)
+                    fallbacks += fallback
+                    Log.w(TAG, "Falling back from the ${attempt.name} backend: ${fallback.reason}")
                     interpreter?.close()
                     closeQuietly(delegate)
                     model.rewind()
                 }
             }
+            // `message` is what the UI shows, so fold in every failure here too:
+            // otherwise the last backend's error is the only hint the user gets.
+            val tried = fallbacks.joinToString(separator = "; ") { it.description }
             throw IllegalStateException(
-                "Could not create a TFLite interpreter for $MODEL_ASSET. " +
-                    "Did you copy the model into app/src/main/assets/ ?",
+                buildString {
+                    append("Could not create a TFLite interpreter for $MODEL_ASSET. ")
+                    append("Did you copy the model into app/src/main/assets/ ?")
+                    if (tried.isNotEmpty()) append(" Tried: $tried")
+                },
                 lastError,
             )
         }

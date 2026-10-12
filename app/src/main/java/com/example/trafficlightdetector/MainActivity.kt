@@ -150,6 +150,19 @@ class MainActivity : AppCompatActivity() {
             state.alarmCount,
         )
 
+        // Field diagnostics: only visible when a preferred accelerator was
+        // rejected (see AcceleratorFallback), so it never clutters a clean run.
+        if (state.acceleratorFallbacks.isEmpty()) {
+            binding.backendFallbackTextView.text = null
+            binding.backendFallbackTextView.visibility = android.view.View.GONE
+        } else {
+            binding.backendFallbackTextView.text = getString(
+                R.string.backend_fallback_format,
+                state.acceleratorFallbacks.joinToString(separator = " · ") { it.description },
+            )
+            binding.backendFallbackTextView.visibility = android.view.View.VISIBLE
+        }
+
         binding.thresholdLabelTextView.text =
             getString(R.string.threshold_format, state.confidenceThresholdPercent)
 

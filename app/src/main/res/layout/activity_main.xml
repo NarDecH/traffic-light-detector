@@ -74,6 +74,20 @@
             android:textColor="#AAAAAA"
             android:textSize="12sp"
             android:text="@string/perf_placeholder" />
+
+        <!-- Only shown when the preferred accelerator (GPU/NNAPI) was rejected -->
+        <TextView
+            android:id="@+id/backendFallbackTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:maxLines="2"
+            android:textColor="#FFCC80"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="backend fallback — GPU: delegate creation failed" />
     </LinearLayout>
 
     <!-- Controls -->

@@ -1,6 +1,7 @@
 package com.example.trafficlightdetector.ui
 
 import com.example.trafficlightdetector.domain.GreenLightGate
+import com.example.trafficlightdetector.ml.AcceleratorFallback
 import com.example.trafficlightdetector.ml.Detection
 
 /** Lifecycle of the TFLite model. */
@@ -16,6 +17,13 @@ data class MainUiState(
     val detectorStatus: DetectorStatus = DetectorStatus.Loading,
     /** Active TFLite backend, e.g. `GPU` / `CPU x4`. */
     val acceleration: String = "",
+    /**
+     * Accelerators that were tried and rejected while loading the model, each
+     * with the reason (e.g. `GPU: delegate creation failed`). Empty after a
+     * clean load; shown on screen so a device that silently ends up on CPU can
+     * be diagnosed without adb.
+     */
+    val acceleratorFallbacks: List<AcceleratorFallback> = emptyList(),
     /** Detections of the latest analysed frame, in normalised coordinates. */
     val detections: List<Detection> = emptyList(),
     /** Size of the upright frame the detections are normalised against. */

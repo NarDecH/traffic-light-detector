@@ -8,6 +8,8 @@
 
     <string name="detection_placeholder">no detections yet</string>
     <string name="perf_placeholder">inference – ms · – fps</string>
+    <!-- e.g. "backend fallback — GPU: delegate creation failed" -->
+    <string name="backend_fallback_format">backend fallback — %1$s</string>
 
     <string name="alarm_enabled">Alarm on green light</string>
     <string name="threshold_placeholder">Confidence threshold: 70%%</string>

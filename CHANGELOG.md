@@ -11,6 +11,25 @@
 - ตัวถอดรหัส anchor/NMS สำหรับโมเดล YOLO ที่ output ดิบ
 - ปรับภาพก่อนเข้าโมเดล (gamma/CLAHE) สำหรับกลางคืน
 
+## [1.2.0] — 2026-10-13
+
+### Added
+
+- **ปล่อย GitHub Release อัตโนมัติจาก tag** — `.github/workflows/release.yml`: push tag `v*` แล้ว CI ตรวจว่า
+  tag ตรงกับ `versionName`, รันเทสต์ทั้งสองชุด, build `:app:assembleRelease` แล้วสร้าง GitHub Release แนบ
+  `traffic-light-detector-<version>[-unsigned].apk` + checksum `.sha256` โดยใช้เนื้อหาจากส่วน `## [<version>]`
+  ของ `CHANGELOG.md` (ผ่าน `tools/changelog_section.py` ตัวใหม่ พร้อมเทสต์ 11 เคส — ชุด `tools/tests` รวมเป็น
+  102 เคส) และสั่งรันซ้ำสำหรับ tag เดิมได้ผ่าน `workflow_dispatch`
+- **เซ็น APK ก่อนแนบ (ไม่บังคับ)** — `app/build.gradle.kts` อ่าน `keystore.properties` ที่ถูก gitignore
+  (`storeFile`/`storePassword`/`keyAlias`/`keyPassword`): มีไฟล์ = release build ถูกเซ็น, ไม่มี = ได้ APK
+  แบบ unsigned เหมือนเดิม; CI เขียนไฟล์นี้จาก signing secrets (`RELEASE_KEYSTORE_BASE64`,
+  `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`) — ขั้นตอนอยู่ใน CONTRIBUTING.md
+
+### Changed
+
+- เอกสาร — README เพิ่มหัวข้อ Release (ดาวน์โหลด APK + ข้อจำกัดเรื่องไฟล์ที่ยังไม่เซ็น/ไม่มีโมเดล),
+  CONTRIBUTING เพิ่มขั้นตอนปล่อยเวอร์ชันและตั้งค่า signing secrets, docs/TESTING เพิ่มหัวข้อ 5.1 (release workflow)
+
 ## [1.1.0] — 2026-10-12
 
 ### Added

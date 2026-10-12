@@ -147,7 +147,7 @@ else                     → แถบดำซ้าย-ขวา, content ก�
 | ไม่ได้สิทธิ์กล้อง | แสดงข้อความใน `messageTextView` ไม่เริ่มกล้อง |
 | ผูกกล้องไม่สำเร็จ | `CameraController.onError` → แสดงข้อความ + log |
 | โหลดโมเดลไม่ได้ (`create` throw) | `DetectorStatus.Error` + ข้อความ, analyzer จะทิ้งเฟรมทั้งหมด (แอปไม่ crash) |
-| GPU delegate ใช้ไม่ได้ | ไล่ fallback อัตโนมัติ GPU → NNAPI → CPU แล้วรายงานชื่อ backend ที่ใช้จริงบนหน้าจอ |
+| GPU delegate ใช้ไม่ได้ | ไล่ fallback อัตโนมัติ GPU → NNAPI → CPU แล้วรายงานชื่อ backend ที่ใช้จริงบนหน้าจอ พร้อมเหตุผลที่ตกไป backend นั้น (`AcceleratorFallback` → `MainUiState.acceleratorFallbacks`) |
 | เฟรมใดเฟรมหนึ่งพัง | จับ exception ใน `analyze()` → log แล้วไปเฟรมถัดไป (กล้องไม่ตายทั้ง pipeline) |
 | Tensor output ไม่ตรงสัญญา | `require(...)` ตอนสร้าง detector พร้อมข้อความอธิบายว่าพบอะไร |
 | ToneGenerator สร้างไม่ได้ | log + `onError` แล้วทำงานต่อโดยไม่มีเสียง (UI ยังวาดกรอบ) |

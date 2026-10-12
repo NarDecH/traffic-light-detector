@@ -25,8 +25,13 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 .venv/
+.venv-train/
 venv/
 build/tflite_export/
+
+# Training images/annotations: private, large, and licensed per-dataset.
+# Share a dataset by pointing to it from docs/ instead of committing it.
+/dataset/
 
 # ---- Freebuff workspace metadata ----
 .freebuff/

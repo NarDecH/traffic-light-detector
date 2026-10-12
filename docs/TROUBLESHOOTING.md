@@ -52,7 +52,7 @@
 | เครื่องร้อนขึ้นเรื่อย ๆ | throttle สั้นเกินไป + ทำงานบน CPU | ใช้ preset ประหยัดแบตใน [CONFIGURATION.md](CONFIGURATION.md) |
 | กล้องค้างหลังกลับมาจาก background | analyzer ไม่ถูก clear ตอน `onStop` | ตรวจว่า `CameraController.stop()` ถูกเรียกใน `onStop()` (ค่าเริ่มต้นทำแล้ว) |
 | `OutOfMemoryError` | เก็บบิตแมปไว้โดยไม่ recycle | ทุกเฟรมต้อง `bitmap.recycle()` หลัง `detect()`; ห้ามส่ง Bitmap ไปให้ UI |
-| แถบสถานะขึ้น backend `CPU xN` ทั้งที่อยากใช้ GPU | GPU delegate ไม่รองรับโมเดลนี้ (เช่น INT8) หรือ driver เก่า | ใช้โมเดล float32 ถ้าต้องการ GPU หรือยอมรับ CPU (INT8 บน CPU มักเร็วพอ) |
+| แถบสถานะขึ้น backend `CPU xN` ทั้งที่อยากใช้ GPU | (ก) โมเดลมี op ที่ GPU delegate ไม่รองรับ — โมเดลปลอมจาก `make_dummy_model.py` เป็นแบบนี้เสมอ (ข) ขาด dependency `tensorflow-lite-gpu-api` (จำเป็นตั้งแต่ TF 2.16) หรือ driver เก่า | ดูบรรทัด `backend fallback — GPU: <เหตุผล>` ที่ขึ้นบนแถบสถานะ (ไม่ต้องต่อ adb) หรือ logcat tag `TrafficLightDetector` ว่ามี `Falling back from the GPU backend` ไหม; โปรเจกต์นี้เพิ่ม `tensorflow-lite-gpu-api` แล้ว (โมเดลจริงอย่าง EfficientDet-Lite0 ขึ้น `backend=GPU` ได้) — ถ้ายัง fallback ให้ยอมรับ CPU (INT8 บน CPU มักเร็วพอ) |
 
 ## เครื่องมือ Python
 
@@ -61,7 +61,11 @@
 | `tflite-model-maker` ติดตั้งไม่ผ่าน | Python ใหม่กว่า 3.11 | ใช้ Python 3.9–3.11 หรือเปลี่ยนไปใช้ TF Model Garden (ดู [MODEL.md](MODEL.md)) |
 | `TensorFlow is required` | ยังไม่ได้ลง TF | `pip install tensorflow` (สำหรับ `inspect_model.py` / `make_dummy_model.py`) |
 | `export_tflite.py` บอก `Missing dataset directory` | โครงสร้างโฟลเดอร์ไม่ตรง | ต้องมี `dataset/train/images`, `dataset/train/annotations` ตาม [MODEL.md](MODEL.md) |
-| เทรนแล้วโมเดลไม่ detect อะไรเลย | label map ไม่ตรงกับ XML, หรือ class ไม่สมดุล | ตรวจ `VOC_LABEL_MAP` ให้ตรงกับ `<name>` ใน XML และกระจายคลาสให้สมดุล |
+| `validate_dataset.py` ฟ้อง `unknown class '...'` | ชื่อใน `<name>` ไม่ตรงกับคลาสที่แอปรู้จัก | แก้ชื่อใน XML ให้เป็น `red_light`/`yellow_light`/`green_light` (หรือชื่ออื่นที่ `labels.txt` ประกาศ) |
+| `validate_dataset.py` ฟ้อง `outside the declared image` | `<size>` ไม่ตรงกับภาพจริง หรือกรอบเกินขอบ | แก้ `<size>` ให้ตรงหรือขยับกรอบ; ถ้า annotation เก่ามากให้ export ใหม่จากเครื่องมือ label |
+| `validate_dataset.py` ฟ้อง `has no matching annotation` | ภาพกับ `.xml` ไม่ครบคู่/ชื่อไม่ตรง | ตั้งชื่อไฟล์ให้ stem ตรงกัน (`001.jpg` ↔ `001.xml`) |
+| `export_tflite.py` บอก `problem(s); not training on it` | ชุดข้อมูลยังไม่ผ่านการตรวจ | รัน `python tools/validate_dataset.py --dataset dataset` แล้วแก้ตามรายการที่บอก |
+| เทรนแล้วโมเดลไม่ detect อะไรเลย | label map ไม่ตรงกับ XML, หรือ class ไม่สมดุล | ตรวจ `VOC_LABEL_MAP` ให้ตรงกับ `<name>` ใน XML และกระจายคลาสให้สมดุล; ดู [TRAINING.md](TRAINING.md) ขั้นที่ 3–4 |
 
 ## สภาพแวดล้อมการ build (JDK / Android SDK)
 
@@ -75,6 +79,33 @@
 | CI ล้มที่ `Failed to find package 'tools'` | แพ็กเกจ `tools` ถูกถอดออกจาก SDK repository แล้ว แต่ `android-actions/setup-android` ยังขออยู่ | ติดตั้ง `platform-tools platforms;android-36 build-tools;35.0.0` แทน (ทำไว้แล้วใน `.github/workflows/android.yml`) |
 | ไม่รู้ว่าเครื่องมี SDK อะไรแล้วบ้าง | — | `"%LOCALAPPDATA%\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat" --list_installed` |
 | ไม่มี Android Studio แต่อยาก build จาก command line | — | ดูวิธีติดตั้งด้านล่าง |
+| อยากตรวจบนอิมเมอเรเตอร์แต่ `emulator` ฟ้อง `x86_64 emulation currently requires hardware acceleration!` | **VT-x/AMD-V ถูกปิดใน BIOS/UEFI** — ดู `(Get-CimInstance Win32_Processor).VirtualizationFirmwareEnabled`; ถ้าเป็น `False` เครื่องจะไม่มี hypervisor ให้ `accel-check` ใช้ (บน Windows 11 ที่ไม่มี Hyper-V/WHPX ตัวที่ต้องใช้คือไดรเวอร์ AEHD) | เปิด virtualization ใน BIOS/UEFI ก่อน แล้วติดตั้งไดรเวอร์ AEHD (ดูหัวข้อล่าง) — ไดรเวอร์ที่ติดตั้งไว้จะสตาร์ทเองเมื่อเปิด VT-x แล้ว; ถ้าเปิด BIOS ไม่ได้ ให้ใช้ **มือถือจริงผ่าน adb** แทน (ดู [TESTING.md §1.2](TESTING.md#12-instrumentation-test-บนอุปกรณ์-tflite-จริง)) |
+
+### ตรวจบนอิมเมอเรเตอร์ (ทางเลือก เมื่อไม่มีมือถือ)
+
+การทดสอบที่ต้องใช้ TFLite จริง (ดู [TESTING.md §1.2](TESTING.md#12-instrumentation-test-บนอุปกรณ์-tflite-จริง))
+ทำผ่านอิมเมอเรเตอร์ได้ แต่ต้องมี hardware acceleration จริงก่อน
+
+```bash
+SDK="$LOCALAPPDATA/Android/Sdk"                       # Windows
+"$SDK/cmdline-tools/latest/bin/sdkmanager.bat" --sdk_root="$SDK" "system-images;android-35;google_apis;x86_64"
+"$SDK/cmdline-tools/latest/bin/avdmanager.bat" create avd -n fb_api35 -k "system-images;android-35;google_apis;x86_64" -d pixel_6
+export JAVA_HOME='C:\Program Files\Java\jdk-17.0.20.1' # SDK tools ต้องมี JDK 17
+"$SDK/emulator/emulator.exe" -avd fb_api35 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+```
+
+ถ้าไดรเวอร์ยังไม่มี (Windows ที่ไม่เปิด Hyper-V/WHPX):
+
+```bash
+"$SDK/cmdline-tools/latest/bin/sdkmanager.bat" --sdk_root="$SDK" "extras;google;Android_Emulator_Hypervisor_Driver"
+# แล้วรันแบบ administrator: "$SDK/extras/google/Android_Emulator_Hypervisor_Driver/silent_install.bat"
+# ตรวจผล: "$SDK/emulator/emulator.exe" -accel-check   → ต้องขึ้นว่าใช้ hypervisor ได้
+# ถอนไดรเวอร์: silent_install.bat -u
+```
+
+หมายเหตุจากเครื่องที่ทดสอบ (i7-6700 + Windows 11, ไม่มี Hyper-V/WHPX): ติดตั้ง AEHD สำเร็จแต่ `sc start aehd`
+ล้มเหลวเพราะ VT-x ปิดใน BIOS — ระหว่างนั้น `adb devices` จะว่างเปล่าและ Gradle จะรายงานว่าไม่มีอุปกรณ์
+(อิมเมอเรเตอร์ที่ยังไม่บูตเสร็จไม่นับเป็นอุปกรณ์)
 
 ### ติดตั้ง Android SDK จาก command line
 

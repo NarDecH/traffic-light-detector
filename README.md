@@ -34,7 +34,7 @@
 ## ฟีเจอร์
 
 - 📷 **CameraX** — `Preview` + `ImageAnalysis` (4:3, `STRATEGY_KEEP_ONLY_LATEST`, `RGBA_8888`) ทำงานแบบเรียลไทม์
-- 🧠 **TensorFlow Lite Interpreter** — เลือก backend อัตโนมัติ GPU → NNAPI → CPU (x4 threads) พร้อม fallback
+- 🧠 **TensorFlow Lite Interpreter** — เลือก backend อัตโนมัติ GPU → NNAPI → CPU (x4 threads) พร้อม fallback และบอกเหตุผลของ fallback บนแถบสถานะ (ไม่ต้องต่อ adb)
 - 🎨 **รองรับทั้งโมเดล float32 และ quantized (INT8/UINT8)** — ตรวจจับ dtype, quantization parameters และค่า input scaling ให้เอง
 - 🔤 **3 คลาส**: `red_light`, `yellow_light`, `green_light` — ผูกผ่าน `labels.txt` (ไม่ผูกกับ index ตายตัว)
 - 🔔 **เตือนไฟเขียว > 70%** ด้วย `ToneGenerator` (สาย Alarm) + สั่น
@@ -108,14 +108,14 @@ app/src/main/java/com/example/trafficlightdetector/
 ├── alarm/                          Alerter (interface) + ToneAlerter (ToneGenerator, audio focus, สั่น)
 ├── camera/                         CameraController + ImageProxyExt (RGBA fast path, YUV fallback)
 ├── domain/                         TrafficLightAnalyzer, GreenLightGate, DetectionFrame
-├── ml/                             TrafficLightDetector, Detection, TrafficLightClass, TrafficLightLabels,
-│                                   NonMaxSuppression, TensorMath
+├── ml/                             TrafficLightDetector, AcceleratorFallback, Detection, TrafficLightClass,
+│                                   TrafficLightLabels, NonMaxSuppression, TensorMath
 └── ui/                             MainViewModel, MainUiState, OverlayView, BoxMapper
 
 app/src/main/assets/labels.txt      รายชื่อคลาสของโมเดล (0 = red_light)
 app/src/test/java/...               Unit test บน JVM (gate, NMS, labels, box mapping)
 docs/                               เอกสาร + รูปประกอบ (SVG)
-tools/                              สคริปต์ Python: เทรน/export/ตรวจสอบโมเดล
+tools/                              สคริปต์ Python: ตรวจชุดข้อมูล/เทรน/export/ตรวจสอบโมเดล/ตรวจ backend บนเครื่อง
 ```
 
 ## โมเดล
@@ -135,12 +135,15 @@ Input `[1, H, W, 3]` (NHWC) รองรับ float32 / INT8 / UINT8 — โค
 
 ```bash
 pip install -r tools/requirements.txt        # Python 3.9–3.11 (tflite-model-maker)
-python tools/export_tflite.py --dataset dataset --output app/src/main/assets   # เทรน EfficientDet-Lite0
+python tools/validate_dataset.py --dataset dataset                             # ตรวจชุดข้อมูลก่อนเทรน (ไม่ต้องติดตั้งอะไร)
+python tools/export_tflite.py --dataset dataset --output app/src/main/assets    # เทรน EfficientDet-Lite0 (ตรวจชุดข้อมูลให้ก่อน)
 python tools/make_dummy_model.py             # โมเดลปลอมสำหรับทดสอบ pipeline
 python tools/inspect_model.py <model.tflite> # ตรวจ I/O ก่อนวางลง assets
+python tools/check_device_backend.py         # ติดตั้ง+เปิดแอปบนเครื่อง แล้วตรวจบรรทัด backend fallback
 ```
 
 การเตรียมชุดข้อมูล (Pascal VOC), ขั้นตอนเทรน, quantization และการเลือกค่า input scaling: **[docs/MODEL.md](docs/MODEL.md)**
+คู่มือทำจริงตั้งแต่เก็บภาพจนทดสอบบนถนน: **[docs/TRAINING.md](docs/TRAINING.md)**
 
 ## การปรับแต่ง
 
@@ -169,6 +172,13 @@ python tools/inspect_model.py <model.tflite> # ตรวจ I/O ก่อนว�
 | `NonMaxSuppressionTest` | IoU และการยุบกรอบซ้ำ (แยกตามคลาส) |
 | `TrafficLightLabelsTest` | parse `labels.txt`, จับคู่ label แบบไม่สนใจตัวพิมพ์/ช่องว่าง, label ที่ไม่รู้จัก |
 | `BoxMapperTest` | การแปลงพิกัดแบบ `fitCenter` (มี/ไม่มีแถบดำ) |
+| `AcceleratorFallbackTest` | ข้อความเหตุผลของ backend ที่ถูกปฏิเสธ (`message` ว่าง → ชื่อคลาส, ตัดความยาว, ห้ามว่างเปล่า) |
+
+เทสต์บนอุปกรณ์จริง (instrumentation — โหลดโมเดลจริงและรัน `detect()` ซ้ำหลายเฟรมกับ TFLite):
+
+```bash
+./gradlew :app:connectedDebugAndroidTest    # ต้องต่ออุปกรณ์ (ดูรายละเอียดใน docs/TESTING.md §1.2)
+```
 
 Checklist การทดสอบบนเครื่องจริง + วิธีวัด FPS/inference time: **[docs/TESTING.md](docs/TESTING.md)**
 
@@ -178,6 +188,7 @@ Checklist การทดสอบบนเครื่องจริง + ว�
 |--------|--------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | layer, threading, ลำดับการทำงาน (sequence), state machine, data contract, จุดขยาย |
 | [docs/MODEL.md](docs/MODEL.md) | สัญญา I/O ของโมเดล, ชุดข้อมูล, การเทรน/export, quantization, input scaling |
+| [docs/TRAINING.md](docs/TRAINING.md) | คู่มือทำโมเดลจริงทีละขั้น: เตรียมเครื่อง, เก็บ/ตรวจชุดข้อมูล, เทรน, ติดตั้ง, เกณฑ์ทดสอบภาคสนาม |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | ทุกพารามิเตอร์ที่จูนได้ + ผลกระทบ/ข้อแลกเปลี่ยน |
 | [docs/TESTING.md](docs/TESTING.md) | แผนการทดสอบ, checklist ภาคสนาม, การวัดประสิทธิภาพ |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | อาการที่พบบ่อยและวิธีแก้ |

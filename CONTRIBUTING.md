@@ -56,8 +56,8 @@ python -m unittest discover -s tools/tests -v   # เทสต์สคริป
 
 - commit message สั้น เน้น "ทำไม" (แนะนำ conventional commits: `feat:`, `fix:`, `docs:`, `test:`)
 - 1 PR = 1 เรื่อง; ถ้าแตะทั้ง Kotlin และสคริปต์โมเดล ให้แยก PR ถ้าเป็นได้
-- อย่า commit: `local.properties`, ไฟล์ `.tflite` ที่ยังไม่ผ่านการตรวจ, `build/`, ภาพ数据集ขนาดใหญ่
-  (ถ้าจะแชร์ชุดข้อมูล ให้ใส่ลิงก์ + สัญญาอนุญาตใน `docs/` แทน)
+- อย่า commit: `local.properties`, ไฟล์ `.tflite` ที่ยังไม่ผ่านการตรวจ, `build/`, ภาพ/ชุดข้อมูลขนาดใหญ่
+  (ถ้าจะแชร์ชุดข้อมูล ให้ใส่ลิงก์ + สัญญาอนุญาตใน `docs/` แทน — `dataset/` ถูก gitignore ไว้)
 
 ### Checklist ก่อนเปิด PR
 
@@ -65,7 +65,7 @@ python -m unittest discover -s tools/tests -v   # เทสต์สคริป
 - [ ] `./gradlew :app:assembleDebug` ผ่าน
 - [ ] ถ้าแตะ state machine → มีเทสต์ใหม่ใน `GreenLightGateTest`
 - [ ] ถ้าแตะการวาด/พิกัด → มีเทสต์ใน `BoxMapperTest` หรืออธิบายว่าทำไมทดสอบไม่ได้
-- [ ] ถ้าแตะสคริปต์ Python → รัน `python tools/inspect_model.py` (หรือ `--help`) แล้วยังทำงานถูก
+- [ ] ถ้าแตะสคริปต์ Python → `python -m unittest discover -s tools/tests` ผ่าน และ `--help` ของสคริปต์ที่แตะยังใช้ได้
 - [ ] อัปเดตเอกสารใน `docs/` และ `CHANGELOG.md`
 - [ ] ไม่มี credential/โทเคน/คีย์ในโค้ดหรือ log
 

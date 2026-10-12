@@ -26,7 +26,11 @@ Dataset layout (Pascal VOC XML):
 Usage:
 
     pip install -r tools/requirements.txt
+    python tools/validate_dataset.py --dataset dataset     # ต้องผ่านก่อน (ตรวจให้เองด้านล่างอยู่แล้ว)
     python tools/export_tflite.py --dataset dataset --output app/src/main/assets
+
+The dataset is validated first (same checks as `tools/validate_dataset.py`), so a
+typo in an annotation file fails in seconds instead of hours into training.
 
 Note: `tflite-model-maker` needs Python 3.9-3.11 and TensorFlow <= 2.15. If you
 are on a newer Python, train with the TF Model Garden instead and export with
@@ -40,6 +44,8 @@ import argparse
 import pathlib
 import shutil
 import sys
+
+import validate_dataset  # same directory: run as `python tools/export_tflite.py`
 
 CLASS_NAMES = ["red_light", "yellow_light", "green_light"]
 # Pascal VOC label ids used in the annotation files. Adjust if your labels differ.
@@ -63,8 +69,37 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def dataset_problems(dataset_root: pathlib.Path) -> list[str]:
+    """Problems the dataset has, per `validate_dataset`. Empty list = usable."""
+    problems = []
+    for split in ("train", "validation"):
+        report = validate_dataset.check_split(dataset_root / split, split)
+        problems.extend(report.problems)
+    return problems
+
+
 def main() -> int:
     args = parse_args()
+
+    train_dir = args.dataset / "train"
+    validation_dir = args.dataset / "validation"
+    for directory in (train_dir, validation_dir):
+        if not directory.is_dir():
+            print(f"Missing dataset directory: {directory}", file=sys.stderr)
+            return 1
+
+    # Cheap gate before the expensive import/training: a mismatched image or a
+    # box drawn outside the frame will not be caught by TensorFlow, it will just
+    # quietly produce a model that misses lights.
+    problems = dataset_problems(args.dataset)
+    if problems:
+        print(f"Dataset {args.dataset} has {len(problems)} problem(s); not training on it:", file=sys.stderr)
+        for problem in problems[:10]:
+            print(f"  - {problem}", file=sys.stderr)
+        if len(problems) > 10:
+            print(f"  ... and {len(problems) - 10} more", file=sys.stderr)
+        print(f"Fix them first: python tools/validate_dataset.py --dataset {args.dataset}", file=sys.stderr)
+        return 1
 
     try:
         from tflite_model_maker import model_spec, object_detector
@@ -76,13 +111,6 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-
-    train_dir = args.dataset / "train"
-    validation_dir = args.dataset / "validation"
-    for directory in (train_dir, validation_dir):
-        if not directory.is_dir():
-            print(f"Missing dataset directory: {directory}", file=sys.stderr)
-            return 1
 
     print(f"Loading dataset from {args.dataset} ...")
     train_data = object_detector.DataLoader.from_pascal_voc(

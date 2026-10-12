@@ -11,6 +11,7 @@
 ![TensorFlow Lite](https://img.shields.io/badge/TensorFlow%20Lite-2.16.1-ff6f00)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 [![Android CI](https://github.com/NarDecH/traffic-light-detector/actions/workflows/android.yml/badge.svg)](https://github.com/NarDecH/traffic-light-detector/actions/workflows/android.yml)
+[![Release](https://github.com/NarDecH/traffic-light-detector/actions/workflows/release.yml/badge.svg)](https://github.com/NarDecH/traffic-light-detector/actions/workflows/release.yml)
 
 ![Detection pipeline](docs/images/pipeline.svg)
 
@@ -27,6 +28,7 @@
 - [โมเดล](#โมเดล)
 - [การปรับแต่ง](#การปรับแต่ง)
 - [การทดสอบ](#การทดสอบ)
+- [Release](#release)
 - [เอกสารเพิ่มเติม](#เอกสารเพิ่มเติม)
 - [ข้อจำกัด](#ข้อจำกัด)
 - [License](#license)
@@ -182,6 +184,16 @@ python tools/check_device_backend.py         # ติดตั้ง+เปิ�
 
 Checklist การทดสอบบนเครื่องจริง + วิธีวัด FPS/inference time: **[docs/TESTING.md](docs/TESTING.md)**
 
+## Release
+
+ทุกครั้งที่ push tag `v*` CI จะรันเทสต์ทั้งหมด, build `:app:assembleRelease` แล้วสร้าง **GitHub Release**
+ให้อัตโนมัติ (ดู [.github/workflows/release.yml](.github/workflows/release.yml)) — ดาวน์โหลด APK พร้อม
+checksum `.sha256` ได้จาก [หน้า Releases](https://github.com/NarDecH/traffic-light-detector/releases)
+โดยเนื้อหาของ release มาจากส่วนของรุ่นนั้นใน [CHANGELOG.md](CHANGELOG.md)
+
+- **APK ยังไม่ถูกเซ็นโดยค่าเริ่มต้น** — ติดตั้งตรง ๆ ไม่ได้จนกว่าจะตั้ง signing secrets (ขั้นตอนอยู่ใน [CONTRIBUTING.md](CONTRIBUTING.md))
+- รีโปนี้ไม่เก็บไฟล์โมเดล: แท็กที่ไม่มี `.tflite` จะได้ APK ที่ขึ้น `Model error` — เทรน/วางโมเดลตาม [docs/TRAINING.md](docs/TRAINING.md)
+
 ## เอกสารเพิ่มเติม
 
 | เอกสาร | เนื้อหา |
@@ -204,6 +216,9 @@ Checklist การทดสอบบนเครื่องจริง + ว�
   ไม่มีการชดเชยแสงกลางคืน, ไม่มี fail-safe เมื่อกล้องหรือโมเดลล้มเหลว)
 - `OverlayView` แปลงพิกัดแบบ `fitCenter` ให้ตรงกับ `PreviewView` ที่ตั้ง `app:scaleType="fitCenter"`
   — ถ้าเปลี่ยน `scaleType` ต้องแก้ `BoxMapper` ให้ตรงกัน
+
+- รีโปนี้ไม่เก็บไฟล์โมเดล (`.tflite`) — ต้องเทรน/วางเองตาม [docs/TRAINING.md](docs/TRAINING.md); APK ที่ CI แนบ
+  ในหน้า Release จึงยังไม่มีโมเดลจนกว่าจะออกเวอร์ชันที่มีโมเดลจริง
 
 ## License
 

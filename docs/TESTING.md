@@ -33,7 +33,7 @@
 รันพร้อมกันได้ทั้งชุด:
 
 ```bash
-python -m unittest discover -s tools/tests -v      # 91 เคส (ข้าม 6 ถ้าไม่มี TensorFlow)
+python -m unittest discover -s tools/tests -v      # 102 เคส (ข้าม 6 ถ้าไม่มี TensorFlow)
 ```
 
 | ไฟล์ | เคสที่ครอบคลุม | ตรวจอะไรเป็นพิเศษ |
@@ -44,11 +44,12 @@ python -m unittest discover -s tools/tests -v      # 91 เคส (ข้าม 
 | `tests/test_export_tflite.py` | 6 เคส | ด่านตรวจชุดข้อมูลก่อนเทรน: ชุดที่ใช้ได้ผ่าน, ภาพไม่มี annotation และกรอบนอกภาพถูกจับ, ข้อความที่บอกให้ไปรัน `validate_dataset.py`, และด่านต้องทำงาน**ก่อน** import TensorFlow (เครื่องที่ยังไม่ลง `tflite-model-maker` ก็รายงานปัญหาได้) |
 | `tests/test_model_contract.py` | 6 เคส | **ต้องมี TensorFlow** — สร้างโมเดลปลอมจริงแล้วยืนยันว่ามันผ่าน `check_compatibility()`, input เป็น NHWC, มี tensor `[1, N, 4]` ตัวเดียว และรูปร่าง output ตรงสัญญา (เทียบเป็นชุด ไม่เทียบตำแหน่ง เพราะ converter อาจสลับลำดับ — ดู [MODEL.md](MODEL.md#โค้ดหาลำดับ-tensor-อย่างไร)) |
 | `tests/test_check_device_backend.py` | 24 เคส | ตรรกะของด่านตรวจบนเครื่อง (หัวข้อ 1.3): อ่านบรรทัด `backend fallback — <เหตุผล>` จาก UI dump — บรรทัดที่ไม่มีเหตุผล **ไม่ถือว่าผ่าน**, ข้อความไทย/เอนทิตี XML ไม่ทำให้สแกนเพี้ยน, การเลือกอุปกรณ์จาก `adb devices` (ขึ้น `unauthorized`/`offline`/ว่าง ต้องได้คำแนะนำที่ตรงสาเหตุ), การหา `adb` จาก PATH หรือ SDK (`ANDROID_HOME`/`LOCALAPPDATA`) และคำสั่ง Gradle wrapper ของ Windows/Unix |
+| `tests/test_changelog_section.py` | 11 เคส | ตัวช่วยแยกส่วนของ changelog (`tools/changelog_section.py`) ที่ workflow ใช้สร้างเนื้อหา Release: คืนเฉพาะส่วนของเวอร์ชันที่ขอ, หยุดที่หัวข้อถัดไปทั้งแบบมีวงเล็บและไม่มี (`## Unreleased`), ตัด link definition ท้ายไฟล์ออก, จับคู่ชื่อเวอร์ชันแบบเป๊ะ (`1.2.0` ไม่โดน `1.2.0-rc1`) และ exit code ของ CLI (สำเร็จ = 0, ไม่มี/ว่าง/อ่านไม่ได้ = 1) |
 
 CI รันชุดนี้ใน job `Model tooling (python)` แยกจาก job ของ Android เพื่อไม่ให้ช้าไปด้วยกัน
 (ใน CI ไม่ได้ติดตั้ง TensorFlow เคส 6 ตัวหลังจึงข้ามเอง)
 
-ถ้าอยากให้ครบ 91 เคสในเครื่องคุณ ควรแยก venv ไว้ ไม่ให้ปนกับ Python ระบบ
+ถ้าอยากให้ครบ 102 เคสในเครื่องคุณ ควรแยก venv ไว้ ไม่ให้ปนกับ Python ระบบ
 
 ```bash
 python -m venv .venv                                # .venv/ ถูก gitignore ไว้แล้ว
@@ -57,7 +58,7 @@ python -m venv .venv                                # .venv/ ถูก gitignore
 .venv/Scripts/python.exe -m unittest discover -s tools/tests -v
 ```
 
-ตรวจแล้วบนเครื่อง Windows 11 + Python 3.14 + TensorFlow 2.22.0rc0: **91/91 ผ่าน ไม่มีเคสข้าม**
+ตรวจแล้วบนเครื่อง Windows 11 + Python 3.14 + TensorFlow 2.22.0rc0: **102/102 ผ่าน ไม่มีเคสข้าม**
 
 ### 1.2 Instrumentation test บนอุปกรณ์ (TFLite จริง)
 
@@ -195,3 +196,14 @@ adb logcat -s TrafficLightDetector:I MainViewModel:I ToneAlerter:I
 5. `python -m unittest discover -s tools/tests -v` — เทสต์สคริปต์ใน `tools/` (ดูหัวข้อ 1.1)
 
 CI ไม่ได้รัน instrumented test (ต้องใช้อุปกรณ์จริง) และไม่ได้ทดสอบกล้อง
+
+### 5.1 Release อัตโนมัติ (tag `v*`)
+
+`.github/workflows/release.yml` รันเมื่อ **push tag `v*`** (หรือสั่งเองได้จาก Actions → Release → Run workflow พร้อมระบุ tag):
+
+1. ตรวจว่า tag ตรงกับ `versionName` ใน `app/build.gradle.kts` — ไม่ตรงคือล้มทันที (กัน APK ที่ติดป้ายรุ่นผิด)
+2. รันเทสต์ทั้งสองชุดก่อนปล่อย (`gradle :app:testDebugUnitTest` + `python -m unittest discover -s tools/tests`)
+3. เซ็น APK ถ้ามี signing secrets (ดู [CONTRIBUTING.md](../CONTRIBUTING.md)) แล้ว build `gradle :app:assembleRelease`
+4. สร้าง GitHub Release แนบ `traffic-light-detector-<version>[-unsigned].apk` + `.sha256` โดยใช้เนื้อหาจากส่วน `## [<version>]` ของ `CHANGELOG.md` (ผ่าน `tools/changelog_section.py`)
+
+สั่งรันซ้ำสำหรับ tag เดิมได้ (แนบไฟล์ทับของเดิม) — ใช้เมื่อเพิ่งตั้งค่า signing secrets แล้วอยากได้ APK ที่เซ็นแล้ว

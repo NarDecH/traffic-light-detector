@@ -13,6 +13,10 @@ local.properties
 *.jks
 *.keystore
 
+# Local release signing (see CONTRIBUTING.md "การปล่อยเวอร์ชัน"): never commit
+keystore.properties
+*.keystore.b64
+
 # Generates the Gradle wrapper jar locally (see README "Quick start")
 gradle/wrapper/gradle-wrapper.jar
 

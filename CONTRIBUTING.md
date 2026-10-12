@@ -69,6 +69,60 @@ python -m unittest discover -s tools/tests -v   # เทสต์สคริป
 - [ ] อัปเดตเอกสารใน `docs/` และ `CHANGELOG.md`
 - [ ] ไม่มี credential/โทเคน/คีย์ในโค้ดหรือ log
 
+## การปล่อยเวอร์ชัน (Release)
+
+CI ปล่อย release ให้เองจาก tag — เครื่องที่ไม่มี `gh` CLI ก็ทำได้:
+
+1. bump `versionCode` (บวก 1) และ `versionName` ใน `app/build.gradle.kts`
+2. ย้ายของใน `[Unreleased]` ของ `CHANGELOG.md` ไปเป็นหัวข้อ `## [x.y.z] — YYYY-MM-DD`
+3. commit แล้ว push `main` จากนั้น push tag แบบ annotated
+
+```bash
+git tag -a v1.2.0 -m "Traffic Light Detector v1.2.0"
+git push origin main v1.2.0
+```
+
+`.github/workflows/release.yml` จะตรวจว่า tag ตรงกับ `versionName`, รันเทสต์ทั้งสองชุด, build `:app:assembleRelease`
+แล้วสร้าง GitHub Release แนบ APK + `.sha256` โดยใช้ส่วน `## [x.y.z]` ของ `CHANGELOG.md` เป็นเนื้อหา
+
+- **APK จะยังไม่ถูกเซ็น** จนกว่าจะตั้งค่า signing secrets (ดูหัวข้อถัดไป) — ไฟล์ที่ยังไม่เซ็นติดตั้งตรง ๆ ไม่ได้
+- ถ้าแท็กไม่มีไฟล์โมเดลใน `app/src/main/assets/` release notes จะขึ้นคำเตือนว่าแอปจะแสดง `Model error`
+- สั่งรันซ้ำสำหรับ tag เดิมได้: Actions → Release → Run workflow → ใส่ tag (ใช้เมื่อเพิ่งตั้งค่า secrets)
+
+### ตั้งค่า signing secrets (ทำครั้งเดียว)
+
+keystore เป็นความลับ — **ห้าม commit** (`*.keystore`, `*.jks`, `keystore.properties` อยู่ใน `.gitignore` แล้ว)
+
+```bash
+# 1) สร้าง keystore เก็บไว้ที่รากของรีโป (แต่ห้าม commit) -- ตั้งรหัสผ่านให้เดาไม่ออก
+keytool -genkeypair -v -keystore release.keystore -alias release \
+  -keyalg RSA -keysize 2048 -validity 10000
+
+# 2) แปลงเป็น base64 บรรทัดเดียว (PowerShell: [Convert]::ToBase64String([IO.File]::ReadAllBytes("release.keystore")))
+base64 -w0 release.keystore > release.keystore.b64
+```
+
+ใส่ค่า 4 ตัวที่ GitHub → Settings → Secrets and variables → Actions → New repository secret:
+
+| Secret | ค่า |
+|--------|-----|
+| `RELEASE_KEYSTORE_BASE64` | เนื้อหาทั้งไฟล์ของ `release.keystore.b64` |
+| `RELEASE_KEYSTORE_PASSWORD` | รหัสผ่านของ keystore (`storePassword`) |
+| `RELEASE_KEY_ALIAS` | alias ที่ใช้ตอนสร้าง (ตัวอย่างข้างบนคือ `release`) |
+| `RELEASE_KEY_PASSWORD` | รหัสผ่านของ key (ปกติเท่ากับ `storePassword`) |
+
+ในเครื่อง: สร้างไฟล์ `keystore.properties` ที่รากโปรเจกต์ (gitignored) แล้ว `gradle :app:assembleRelease` จะเซ็นให้เอง
+
+```
+storeFile=release.keystore
+storePassword=<รหัสผ่าน>
+keyAlias=release
+keyPassword=<รหัสผ่าน>
+```
+
+> ถ้า release ล้มด้วย 403 / `Resource not accessible by integration` ให้ไปที่ Settings → Actions → General →
+> Workflow permissions แล้วเลือก **Read and write permissions**
+
 ## การรายงานบั๊ก
 
 เปิด issue พร้อมข้อมูล: อาการที่เห็น vs ที่คาดหวัง, รุ่นมือถือ + Android version,

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -17,6 +19,31 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Optional release signing: create `keystore.properties` in the repository
+    // root (gitignored) with storeFile / storePassword / keyAlias / keyPassword.
+    // CI writes that file from repository secrets (see CONTRIBUTING.md); without
+    // it `assembleRelease` keeps producing an unsigned APK, exactly as before.
+    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    val keystoreProperties = Properties().apply {
+        if (keystorePropertiesFile.exists()) {
+            keystorePropertiesFile.inputStream().use { load(it) }
+        }
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                fun required(name: String) = keystoreProperties.getProperty(name)
+                    ?: error("keystore.properties is missing '$name' (see CONTRIBUTING.md)")
+
+                storeFile = rootProject.file(required("storeFile"))
+                storePassword = required("storePassword")
+                keyAlias = required("keyAlias")
+                keyPassword = required("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -24,6 +51,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Signed only when `keystore.properties` exists (created locally
+            // or written by CI); otherwise the APK stays unsigned.
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 

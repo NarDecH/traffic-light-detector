@@ -90,6 +90,15 @@ dependencies {
     // TensorFlow Lite runtime (+ optional GPU delegate)
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.gpu)
+    // API half of the GPU delegate: `GpuDelegate` cannot be constructed without
+    // it from 2.16 on (see the comment in gradle/libs.versions.toml).
+    implementation(libs.tensorflow.lite.gpu.api)
 
     testImplementation(libs.junit)
+
+    // Instrumented tests: need a connected device
+    // (`gradle :app:connectedDebugAndroidTest`) -- they run the real TFLite runtime,
+    // which is exactly where the buffer-reuse bug showed up.
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

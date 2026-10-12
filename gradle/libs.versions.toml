@@ -10,6 +10,8 @@ lifecycle = "2.8.7"
 camerax = "1.5.0"
 tflite = "2.16.1"
 junit = "4.13.2"
+androidxTestJunit = "1.2.1"
+androidxTestRunner = "1.6.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -26,11 +28,19 @@ androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", 
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 
-# TensorFlow Lite runtime + optional GPU delegate
+# TensorFlow Lite runtime + optional GPU delegate.
+# `tensorflow-lite-gpu-api` is required at runtime since 2.16: `GpuDelegate`
+# references `GpuDelegateFactory$Options`, which lives only in the api artifact
+# (without it every device falls back to CPU with a NoClassDefFoundError).
 tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version.ref = "tflite" }
 tensorflow-lite-gpu = { group = "org.tensorflow", name = "tensorflow-lite-gpu", version.ref = "tflite" }
+tensorflow-lite-gpu-api = { group = "org.tensorflow", name = "tensorflow-lite-gpu-api", version.ref = "tflite" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+# Instrumented tests (run on a connected device: :app:connectedDebugAndroidTest)
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestJunit" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

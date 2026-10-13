@@ -5,30 +5,36 @@
 
 ## [Unreleased]
 
-### Added
-
-- **ด่านตรวจก่อนแนบไฟล์** — workflow Release รัน `apksigner verify` แล้วเทียบ SHA-256 ของ cert กับ fingerprint ใน
-  keystore (เมื่อตั้ง signing secrets) และ build ซ้ำอีกรอบเพื่อยืนยันว่าได้ไฟล์เดิมทุกไบต์; รอบที่รันซ้ำจะลบ asset
-  เก่าที่รอบนั้นไม่ได้ผลิตให้เอง
-
-### Fixed
-
-- **APK ที่ build ซ้ำได้ไฟล์เดิม (reproducible)** — ปิด SDK dependency metadata ที่ AGP ฝังใน APK signing block
-  (`dependenciesInfo { includeInApk = false }`) ซึ่ง serialize แบบไม่คงที่ จึงทำให้สอง build ได้ SHA-256 คนละตัว
-  — ตอนนี้ build จากคอมมิตเดิมได้ไบต์เดิม (ทดสอบ locally 3 ครั้ง และมีด่านตรวจใน CI ทุกครั้งที่ปล่อย)
-
-### Changed
-
-- **อัปเดต GitHub Actions เป็นเวอร์ชันที่รันบน Node 24** — `checkout@v7`, `setup-java@v6`, `setup-python@v7`,
-  `upload-artifact@v7`, `setup-android@v4`, `setup-gradle@v6` — ลบ deprecation warning (Node 20 / setup-java v4)
-- เอกสาร — CONTRIBUTING เพิ่มหัวข้อ reproducible build และการสำรอง/หมุน keystore; README ระบุว่า checksum ทำซ้ำได้;
-  docs/TESTING อัปเดตลำดับขั้นของ release workflow
-
 ### Planned
 
 - Instrumented test สำหรับ `TrafficLightAnalyzer` และ `OverlayView`
 - ตัวถอดรหัส anchor/NMS สำหรับโมเดล YOLO ที่ output ดิบ
 - ปรับภาพก่อนเข้าโมเดล (gamma/CLAHE) สำหรับกลางคืน
+
+## [1.2.1] — 2026-10-13
+
+### Added
+
+- **ด่านตรวจก่อนแนบไฟล์** — workflow Release รัน `apksigner verify` แล้วเทียบ SHA-256 ของ cert กับ fingerprint ใน
+  keystore (เมื่อตั้ง signing secrets) และ build APK ซ้ำอีกรอบเพื่อยืนยันว่าสองรอบได้ไฟล์เดิมทุกไบต์ — ไม่ผ่าน
+  เท่าไหนล้มทั้งรอบก่อนแตะหน้า release พร้อมพิมพ์ว่า entry ไหนใน APK ที่ต่างและอัปโหลด APK ทั้งสองเป็น artifact
+- **ลบ asset เก่าให้เองในรอบที่รันซ้ำ** — รอบที่สั่งรันซ้ำจะลบ asset ที่รอบนั้นไม่ได้ผลิต (เช่นไฟล์ `-unsigned`
+  ที่ค้างจากก่อนตั้ง secrets) จึงไม่เหลือไฟล์ที่ผู้ใช้ไม่ควรโหลดไว้ข้าง ๆ ไฟล์ปัจจุบัน
+
+### Changed
+
+- **อัปเดต GitHub Actions เป็นเวอร์ชันที่รันบน Node 24** — `checkout@v7`, `setup-java@v6`, `setup-python@v7`,
+  `upload-artifact@v7`, `setup-android@v4`, `setup-gradle@v6` — ลบ deprecation warning (Node 20 / setup-java v4)
+- **APK ที่ปล่อย build แบบไม่ใช้แคช** — รอบ release ส่ง `--no-build-cache` เพื่อไม่ให้ output ที่หยิบจากแคชของ
+  เครื่องอื่นมาทำให้ checksum ที่แนบไม่ตรงกับที่ build ใหม่
+- เอกสาร — CONTRIBUTING เพิ่มหัวข้อ reproducible build และการสำรอง/หมุน keystore; README ระบุว่า checksum ทำซ้ำได้;
+  docs/TESTING อัปเดตลำดับขั้นของ release workflow
+
+### Fixed
+
+- **APK ที่ build ซ้ำได้ไฟล์เดิม (reproducible)** — ปิด SDK dependency metadata ที่ AGP ฝังใน APK signing block
+  (`dependenciesInfo { includeInApk = false }`) ซึ่ง serialize แบบไม่คงที่ จึงทำให้สอง build ของคอมมิตเดียวกันได้
+  SHA-256 คนละตัว — ตอนนี้ build จากคอมมิตเดิมได้ไบต์เดิม (ทดสอบ 5 รอบในเครื่อง และ CI ตรวจสองรอบทุกครั้งที่ปล่อย)
 
 ## [1.2.0] — 2026-10-13
 

@@ -152,6 +152,7 @@ jobs:
           PY
             exit 1
           fi
+          echo "Reproducible APK: $(sha256sum "$apk" | cut -d' ' -f1)"
 
       - name: Upload the mismatching APKs
         if: failure()
@@ -161,7 +162,6 @@ jobs:
           path: repro-mismatch/
           if-no-files-found: ignore
 
-          echo "Reproducible APK: $(sha256sum "$apk" | cut -d' ' -f1)"
 
       # The release notes claim the attached file is signed and installable, so
       # check the artifact instead of trusting the build: with the signing

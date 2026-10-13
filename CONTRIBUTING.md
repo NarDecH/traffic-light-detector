@@ -86,8 +86,12 @@ git push origin main v1.2.0
 แล้วสร้าง GitHub Release แนบ APK + `.sha256` โดยใช้ส่วน `## [x.y.z]` ของ `CHANGELOG.md` เป็นเนื้อหา
 
 - **APK จะยังไม่ถูกเซ็น** จนกว่าจะตั้งค่า signing secrets (ดูหัวข้อถัดไป) — ไฟล์ที่ยังไม่เซ็นติดตั้งตรง ๆ ไม่ได้
+- **ตรวจลายเซ็นก่อนแนบไฟล์**: ถ้ามี secrets แล้ว workflow จะรัน `apksigner verify` และเทียบ SHA-256 ของ cert
+  กับ fingerprint ใน keystore — ไม่ตรงหรือไม่ได้เซ็น = ล้มทั้งรอบโดยยังไม่แตะหน้า release; รอบที่ไม่มี secrets
+  จะขึ้น warning แล้วแนบไฟล์ unsigned ตามเดิม
 - ถ้าแท็กไม่มีไฟล์โมเดลใน `app/src/main/assets/` release notes จะขึ้นคำเตือนว่าแอปจะแสดง `Model error`
-- สั่งรันซ้ำสำหรับ tag เดิมได้: Actions → Release → Run workflow → ใส่ tag (ใช้เมื่อเพิ่งตั้งค่า secrets)
+- สั่งรันซ้ำสำหรับ tag เดิมได้: Actions → Release → Run workflow → ใส่ tag (ใช้เมื่อเพิ่งตั้งค่า secrets) — รอบที่รันซ้ำ
+  จะลบ asset เก่าที่รอบนั้นไม่ได้ผลิต (เช่นไฟล์ `-unsigned` ที่ค้างอยู่) ให้เอง
 
 ### ตั้งค่า signing secrets (ทำครั้งเดียว)
 

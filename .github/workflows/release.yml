@@ -7,7 +7,8 @@ name: Release
 #
 # Re-running for an existing tag is possible from the Actions tab -- that is
 # how an unsigned APK gets replaced after the signing secrets are added (see
-# CONTRIBUTING.md).
+# CONTRIBUTING.md); assets the re-run no longer produces are pruned from the
+# release so a superseded file never sits next to the current one.
 on:
   push:
     tags: ["v*"]
@@ -108,6 +109,65 @@ jobs:
       - name: Build release APK
         run: gradle :app:assembleRelease --no-daemon --stacktrace
 
+      # The release notes claim the attached file is signed and installable, so
+      # check the artifact instead of trusting the build: with the signing
+      # secrets configured the APK must verify and its certificate must be the
+      # one inside the keystore decoded above. Running before the release is
+      # touched means a bad file never reaches the release page.
+      - name: Verify the APK signature
+        env:
+          STORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          signed=app/build/outputs/apk/release/app-release.apk
+
+          # No secrets: unsigned releases are still allowed, but they must not
+          # be mistaken for signed ones (CONTRIBUTING.md documents the trade-off).
+          if [ ! -f keystore.properties ]; then
+            echo "::warning::signing secrets are not configured: this release is unsigned (see CONTRIBUTING.md)"
+            exit 0
+          fi
+
+          if [ ! -f "$signed" ]; then
+            echo "::error::keystore.properties exists but $signed was not produced, so the release would be unsigned"
+            ls -l app/build/outputs/apk/release/ || true
+            exit 1
+          fi
+
+          keystore=$(sed -n 's/^storeFile=//p' keystore.properties)
+          if [ ! -f "$keystore" ]; then
+            echo "::error::keystore.properties points at a missing keystore: $keystore"
+            exit 1
+          fi
+
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          build_tools=$(ls -d "$sdk_root"/build-tools/* 2>/dev/null | sort -V | tail -1 || true)
+          apksigner="$build_tools/apksigner"
+          if [ -z "$build_tools" ] || [ ! -x "$apksigner" ]; then
+            echo "::error::apksigner was not found under $sdk_root/build-tools"
+            exit 1
+          fi
+
+          if ! apksigner_output=$("$apksigner" verify --print-certs "$signed" 2>&1); then
+            echo "::error::apksigner verify failed: the APK is not correctly signed"
+            printf '%s\n' "$apksigner_output"
+            exit 1
+          fi
+          printf '%s\n' "$apksigner_output"
+
+          apk_digest=$(printf '%s\n' "$apksigner_output" \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' \
+            | tr -d ':\r' | tr 'A-Z' 'a-z')
+          # keytool prints the fingerprint indented with a tab, hence [[:space:]]
+          keystore_digest=$(keytool -list -v -keystore "$keystore" -storepass:env STORE_PASSWORD 2>/dev/null \
+            | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr -d ':\r' | tr 'A-Z' 'a-z')
+
+          if [ -z "$apk_digest" ] || [ "$apk_digest" != "$keystore_digest" ]; then
+            echo "::error::the APK is not signed with the expected key (apk=$apk_digest keystore=$keystore_digest)"
+            exit 1
+          fi
+          echo "Signed with the expected release key: $apk_digest"
+
       # One human-readable file name (traffic-light-detector-1.2.0.apk) plus a
       # checksum, and release notes that open with the warnings that matter.
       - name: Collect APK, checksum and release notes
@@ -153,6 +213,16 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG" > /dev/null 2>&1; then
+            # Prune first: an unsigned APK left over from before the signing
+            # secrets existed (or from any earlier naming) would otherwise stay
+            # attached next to the signed file, which is exactly the file users
+            # must not download. Anything still produced by this run is kept.
+            while IFS= read -r stale; do
+              if [ -n "$stale" ] && [ ! -f "dist/$stale" ]; then
+                echo "Removing stale asset: $stale"
+                gh release delete-asset "$TAG" "$stale" --yes
+              fi
+            done < <(gh release view "$TAG" --json assets --jq '.assets[].name')
             gh release upload "$TAG" dist/* --clobber
             gh release edit "$TAG" --notes-file release-notes.md
           else

@@ -106,8 +106,11 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > keystore.properties
 
+      # No build cache for the file that gets published: an output restored from
+      # a cache entry written by another machine made the APK differ from what a
+      # fresh build produces, which is exactly what the checksum must not do.
       - name: Build release APK
-        run: gradle :app:assembleRelease --no-daemon --stacktrace
+        run: gradle :app:assembleRelease --no-daemon --no-build-cache --stacktrace
 
       # Two clean builds of the same commit must produce the same bytes. If a
       # change or an AGP upgrade reintroduces a non-deterministic element, this
@@ -128,8 +131,36 @@ jobs:
           if ! cmp -s /tmp/first-build.apk "$apk"; then
             echo "::error::two builds of the same commit differ, so the published checksum would not be reproducible:"
             sha256sum /tmp/first-build.apk "$apk"
+            mkdir -p repro-mismatch
+            cp /tmp/first-build.apk repro-mismatch/first-build.apk
+            cp "$apk" repro-mismatch/second-build.apk
+            # Say which file inside the APK varies -- that is the whole answer.
+            python - /tmp/first-build.apk "$apk" <<'PY'
+          import hashlib, sys, zipfile
+
+          def entries(path):
+              with zipfile.ZipFile(path) as z:
+                  return {i.filename: (i.CRC, i.file_size, hashlib.sha256(z.read(i.filename)).hexdigest())
+                          for i in z.infolist()}
+
+          first, second = entries(sys.argv[1]), entries(sys.argv[2])
+          names = sorted(set(first) | set(second))
+          differ = [n for n in names if first.get(n) != second.get(n)]
+          print(f"{len(names)} entries, {len(differ)} differ")
+          for name in differ[:25]:
+              print("  DIFF", name, first.get(name), second.get(name))
+          PY
             exit 1
           fi
+
+      - name: Upload the mismatching APKs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reproducibility-mismatch
+          path: repro-mismatch/
+          if-no-files-found: ignore
+
           echo "Reproducible APK: $(sha256sum "$apk" | cut -d' ' -f1)"
 
       # The release notes claim the attached file is signed and installable, so

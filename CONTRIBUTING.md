@@ -89,6 +89,7 @@ git push origin main v1.2.0
 - **ตรวจลายเซ็นก่อนแนบไฟล์**: ถ้ามี secrets แล้ว workflow จะรัน `apksigner verify` และเทียบ SHA-256 ของ cert
   กับ fingerprint ใน keystore — ไม่ตรงหรือไม่ได้เซ็น = ล้มทั้งรอบโดยยังไม่แตะหน้า release; รอบที่ไม่มี secrets
   จะขึ้น warning แล้วแนบไฟล์ unsigned ตามเดิม
+- **APK ต้อง reproducible**: workflow build สองรอบและล้มถ้าไบต์ไม่ตรง (ดูหัวข้อ "APK ที่ build ซ้ำต้องได้ไฟล์เดิม")
 - ถ้าแท็กไม่มีไฟล์โมเดลใน `app/src/main/assets/` release notes จะขึ้นคำเตือนว่าแอปจะแสดง `Model error`
 - สั่งรันซ้ำสำหรับ tag เดิมได้: Actions → Release → Run workflow → ใส่ tag (ใช้เมื่อเพิ่งตั้งค่า secrets) — รอบที่รันซ้ำ
   จะลบ asset เก่าที่รอบนั้นไม่ได้ผลิต (เช่นไฟล์ `-unsigned` ที่ค้างอยู่) ให้เอง
@@ -126,6 +127,42 @@ keyPassword=<รหัสผ่าน>
 
 > ถ้า release ล้มด้วย 403 / `Resource not accessible by integration` ให้ไปที่ Settings → Actions → General →
 > Workflow permissions แล้วเลือก **Read and write permissions**
+
+### APK ที่ build ซ้ำต้องได้ไฟล์เดิม (reproducible build)
+
+checksum ที่แนบในหน้า release มีค่าเมื่อทุกคนที่ build จากแท็กเดิมได้ไฟล์เดิมเป๊ะ ๆ — CI จึง build release APK
+**สองรอบในงานเดียวกัน** (รอบที่สองปิด build cache) แล้วล้มทันทีถ้าไบต์ไม่ตรง ก่อนที่จะแตะหน้า release
+
+- ต้นเหตุที่เคยทำให้สอง build ได้ SHA-256 คนละตัวคือ **SDK dependency metadata** ที่ AGP ฝังไว้ใน APK signing block
+  และ serialize แบบไม่คงที่ — [app/build.gradle.kts](app/build.gradle.kts) จึงปิดด้วย `dependenciesInfo { includeInApk = false }`
+  (มีผลเฉพาะ APK; รายการ dependency ยังดูได้จากที่อื่น และจะเปิดกลับก็แค่ลบบล็อกนั้น)
+- ทดสอบในเครื่อง (สองบรรทัดต้องได้ค่าเท่ากัน):
+
+```bash
+for i in 1 2; do
+  gradle clean :app:assembleRelease --no-daemon --no-build-cache > /dev/null
+  sha256sum app/build/outputs/apk/release/app-release.apk
+done
+```
+
+- **อย่าลืม `--no-build-cache`** ไม่งั้นรอบที่สองอาจถูกเสิร์ฟจากแคชแล้วการเทียบไม่มีความหมาย
+- APK เก็บ revision ของ commit ไว้ (`META-INF/version-control-info.textproto` โดย path เป็น `$PROJECT_DIR` ไม่ใช่ path จริง)
+  → digest จึงเปลี่ยนตาม commit แต่คงที่สำหรับ "คอมมิต + เครื่องมือชุดเดียวกัน" (JDK 17, Gradle 8.11.1, AGP/Kotlin ตาม
+  `gradle/libs.versions.toml`, build-tools ที่ AGP เลือกใช้)
+
+### สำรอง keystore และการหมุนคีย์ (rotation)
+
+- **สำรองทันที**: คัดลอก `release.keystore` กับรหัสผ่านออกไปเก็บนอกเครื่องและนอก repo (password manager +
+  ไฟล์ที่เข้ารหัส) เพราะทั้งสองอย่างถูก gitignore และกู้คืนไม่ได้ — คีย์หาย = ออกเวอร์ชันอัปเดตทับให้ผู้ใช้เดิมไม่ได้
+- **หมุนคีย์เมื่อจำเป็น** (คีย์รั่ว/หมดอายุ/ต้องส่งมอบ):
+  1. สร้าง keystore ใหม่ + `base64 -w0` ตามขั้นตอนด้านบน
+  2. อัปเดต secrets ทั้ง 4 ตัว (Settings → Secrets and variables → Actions)
+  3. Actions → Release → Run workflow ใส่ tag เดิม
+  4. ตรวจ log ขั้น `Verify the APK signature` ว่าพิมพ์ fingerprint **ใหม่** ตรงกับ cert ใน APK ที่แนบ
+- ⚠️ แอปที่ติดตั้งอยู่จะอัปเดตทับไม่ได้จนกว่าผู้ใช้จะถอนตัวเก่า (signature mismatch) — ถ้าแจกผ่าน Play ให้เปิด
+  **Play App Signing** เพื่อหมุนเฉพาะ upload key โดยไม่กระทบผู้ใช้
+- fingerprint ของคีย์ปัจจุบัน (ข้อมูลสาธารณะ ใช้เทียบของจริงได้):
+  `51:25:14:C4:A6:90:62:0B:6C:83:FC:AA:E3:5F:BE:C4:F4:69:93:9B:F4:61:40:64:D4:CD:93:44:01:9F:ED:D4`
 
 ## การรายงานบั๊ก
 

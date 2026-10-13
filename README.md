@@ -192,6 +192,8 @@ checksum `.sha256` ได้จาก [หน้า Releases](https://github.com
 โดยเนื้อหาของ release มาจากส่วนของรุ่นนั้นใน [CHANGELOG.md](CHANGELOG.md)
 
 - **APK ยังไม่ถูกเซ็นโดยค่าเริ่มต้น** — ติดตั้งตรง ๆ ไม่ได้จนกว่าจะตั้ง signing secrets (ขั้นตอนอยู่ใน [CONTRIBUTING.md](CONTRIBUTING.md))
+- **checksum ทำซ้ำได้** — ก่อนแนบไฟล์ CI ตรวจว่าลายเซ็นถูกต้องและ build ซ้ำแล้วได้ไบต์เดิมทุกครั้ง จึง rebuild จากแท็กเดิม
+  เพื่อเทียบกับ `sha256` ที่แนบได้ (ดูหัวข้อ reproducible build ใน [CONTRIBUTING.md](CONTRIBUTING.md))
 - รีโปนี้ไม่เก็บไฟล์โมเดล: แท็กที่ไม่มี `.tflite` จะได้ APK ที่ขึ้น `Model error` — เทรน/วางโมเดลตาม [docs/TRAINING.md](docs/TRAINING.md)
 
 ## เอกสารเพิ่มเติม

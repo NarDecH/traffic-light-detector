@@ -35,25 +35,25 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
       # Same components as android.yml: the action's default package list
       # starts with "tools", which no longer exists in the SDK repository.
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           packages: "platform-tools platforms;android-36 build-tools;35.0.0"
           accept-android-sdk-licenses: true
@@ -62,7 +62,7 @@ jobs:
       # The Gradle wrapper jar is intentionally not committed, so CI provides
       # Gradle itself (same version as gradle/wrapper/gradle-wrapper.properties).
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.11.1"
 
@@ -108,6 +108,29 @@ jobs:
 
       - name: Build release APK
         run: gradle :app:assembleRelease --no-daemon --stacktrace
+
+      # Two clean builds of the same commit must produce the same bytes. If a
+      # change or an AGP upgrade reintroduces a non-deterministic element, this
+      # fails the release instead of publishing a checksum nobody can reproduce.
+      # `--no-build-cache` keeps the second build from being served out of the
+      # Gradle build cache, which would make the comparison meaningless.
+      - name: Check the release APK is reproducible
+        run: |
+          set -euo pipefail
+          apk=app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$apk" ]; then
+            echo "::error::$apk was not produced"
+            exit 1
+          fi
+          cp "$apk" /tmp/first-build.apk
+          gradle clean --no-daemon
+          gradle :app:assembleRelease --no-daemon --no-build-cache --stacktrace
+          if ! cmp -s /tmp/first-build.apk "$apk"; then
+            echo "::error::two builds of the same commit differ, so the published checksum would not be reproducible:"
+            sha256sum /tmp/first-build.apk "$apk"
+            exit 1
+          fi
+          echo "Reproducible APK: $(sha256sum "$apk" | cut -d' ' -f1)"
 
       # The release notes claim the attached file is signed and installable, so
       # check the artifact instead of trusting the build: with the signing

@@ -78,6 +78,16 @@ android {
         }
     }
 
+    // Byte-for-byte reproducible release APKs (see CONTRIBUTING.md): the SDK
+    // dependency metadata AGP embeds in the APK signing block is serialized in a
+    // non-deterministic order, so two builds of the same commit produced two
+    // different SHA-256 hashes. Dropping that block removes the variation; it
+    // only feeds Play's SDK Console (this project ships APKs from GitHub
+    // Releases). Re-enable it by deleting this block.
+    dependenciesInfo {
+        includeInApk = false
+    }
+
     testOptions {
         unitTests.isReturnDefaultValues = true
     }

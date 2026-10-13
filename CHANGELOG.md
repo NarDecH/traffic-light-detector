@@ -5,6 +5,25 @@
 
 ## [Unreleased]
 
+### Added
+
+- **ด่านตรวจก่อนแนบไฟล์** — workflow Release รัน `apksigner verify` แล้วเทียบ SHA-256 ของ cert กับ fingerprint ใน
+  keystore (เมื่อตั้ง signing secrets) และ build ซ้ำอีกรอบเพื่อยืนยันว่าได้ไฟล์เดิมทุกไบต์; รอบที่รันซ้ำจะลบ asset
+  เก่าที่รอบนั้นไม่ได้ผลิตให้เอง
+
+### Fixed
+
+- **APK ที่ build ซ้ำได้ไฟล์เดิม (reproducible)** — ปิด SDK dependency metadata ที่ AGP ฝังใน APK signing block
+  (`dependenciesInfo { includeInApk = false }`) ซึ่ง serialize แบบไม่คงที่ จึงทำให้สอง build ได้ SHA-256 คนละตัว
+  — ตอนนี้ build จากคอมมิตเดิมได้ไบต์เดิม (ทดสอบ locally 3 ครั้ง และมีด่านตรวจใน CI ทุกครั้งที่ปล่อย)
+
+### Changed
+
+- **อัปเดต GitHub Actions เป็นเวอร์ชันที่รันบน Node 24** — `checkout@v7`, `setup-java@v6`, `setup-python@v7`,
+  `upload-artifact@v7`, `setup-android@v4`, `setup-gradle@v6` — ลบ deprecation warning (Node 20 / setup-java v4)
+- เอกสาร — CONTRIBUTING เพิ่มหัวข้อ reproducible build และการสำรอง/หมุน keystore; README ระบุว่า checksum ทำซ้ำได้;
+  docs/TESTING อัปเดตลำดับขั้นของ release workflow
+
 ### Planned
 
 - Instrumented test สำหรับ `TrafficLightAnalyzer` และ `OverlayView`

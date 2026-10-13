@@ -204,6 +204,10 @@ CI ไม่ได้รัน instrumented test (ต้องใช้อุป
 1. ตรวจว่า tag ตรงกับ `versionName` ใน `app/build.gradle.kts` — ไม่ตรงคือล้มทันที (กัน APK ที่ติดป้ายรุ่นผิด)
 2. รันเทสต์ทั้งสองชุดก่อนปล่อย (`gradle :app:testDebugUnitTest` + `python -m unittest discover -s tools/tests`)
 3. เซ็น APK ถ้ามี signing secrets (ดู [CONTRIBUTING.md](../CONTRIBUTING.md)) แล้ว build `gradle :app:assembleRelease`
-4. สร้าง GitHub Release แนบ `traffic-light-detector-<version>[-unsigned].apk` + `.sha256` โดยใช้เนื้อหาจากส่วน `## [<version>]` ของ `CHANGELOG.md` (ผ่าน `tools/changelog_section.py`)
+4. build อีกรอบ (ปิด build cache) แล้วเทียบไบต์กับรอบแรก — ไม่ตรงคือล้ม เพราะ checksum ที่แนบจะทำซ้ำไม่ได้
+5. ตรวจว่าไฟล์ใช้ได้จริง: `apksigner verify` + เทียบ SHA-256 ของ cert กับ fingerprint ใน keystore (เฉพาะเมื่อตั้ง secrets;
+   รอบที่ไม่มี secrets จะขึ้น warning แล้วแนบไฟล์ unsigned)
+6. สร้าง GitHub Release แนบ `traffic-light-detector-<version>[-unsigned].apk` + `.sha256` โดยใช้เนื้อหาจากส่วน `## [<version>]` ของ `CHANGELOG.md` (ผ่าน `tools/changelog_section.py`)
 
-สั่งรันซ้ำสำหรับ tag เดิมได้ (แนบไฟล์ทับของเดิม) — ใช้เมื่อเพิ่งตั้งค่า signing secrets แล้วอยากได้ APK ที่เซ็นแล้ว
+สั่งรันซ้ำสำหรับ tag เดิมได้ (แนบไฟล์ทับของเดิม และลบ asset ที่รอบนั้นไม่ได้ผลิต เช่นไฟล์ `-unsigned` ที่ค้างอยู่) —
+ใช้เมื่อเพิ่งตั้งค่า signing secrets แล้วอยากได้ APK ที่เซ็นแล้ว
